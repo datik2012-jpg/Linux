@@ -1,0 +1,181 @@
+#Linux - Archve , Back Up, Compress and Uncompress files
+
+Archiving
+
+tar = tape archive
+
+bacjup.tar  tarball
+
+////////////////To Display the content of tar file //////////
+
+> tar --list --file archive.tar
+> tar -tf arvhive.tar
+> tar tf archive.tar
+
+
+//////////////////////Archive file (only one file these utilities can compress) ///////
+
+>tar --create --file archive.tar file1  OR tar cf archive.tar file1 
+
+/////////////////////Append file to already existing tar file //////////
+
+>tar --append --file  archive.tar  file2 OR tar rf archive.tar.file2
+
+////////////////////create TAR from Directory ///////////
+
+>tar --create --file archive.tar Pictures/
+
+>tar --create --file archive.tar /home/aaron/Pictures/
+
+
+////////////////////////Before extracting nice to look inside the tar, and see what we have --list //////////
+
+>tar --list --file archive.tar OR tar tf archive.tar 
+
+//////////////////////////Exrtract from TAR file into current directory ////////////
+
+>tar -extract --file archive.tar OR tar xf archive.tar   (will extract the files in the current directory)
+
+
+///////////////////////Extract from TAR to different directory /////////////////
+
+tar --extract --file archive.tar --directory /tmp/ OR tar xf archive.tar -C /tmp/
+
+
+///////////////////////Extract with keeping all priviligies for the files - they had before ///////////
+
+>sudo tar --extract -file archive.tar --directory /tmp/
+
+
+///////////////////////////////Compressions and Decompressions Utilities //////
+
+
+By default exist 3 utilities:
+
+>gzip file1  -> file1.gz
+>bzip2 file2 -> file2.bz2
+>xz file3 -> file3.xz
+
+all tree will do the same ,compress for exampe 50MB file to 5MB  -> file.gz as well original file will be deleted
+
+
+/////////////////////////////Decompression ////////////
+
+>gunzip file1.gz  OR gzip --decopress file1.gz
+>bunzip file2.bz2 OR bzip2 --decompress file2.bz2
+>unxz file3.bz2 OR xz --decompress file3.xz
+
+
+
+////////////////////////////////To see all the options /////////////
+ >gzip --help    (in case we want file which will be ziped , source will be not deleted and stayed)
+ 
+ >gzip --keep file1   - will keep for us source file (default source after compression been deleted)
+ >bzip2 --keep file2
+ >xz --keep file3
+ 
+ 
+ ///////////////////To see the content of compressed file ///////
+ 
+ >xz --list file1 
+ 
+ //////////////////////////ZIP better cause can compress multiple files and directories ////////
+ 
+ >zip archive file1 OR zip archive.zip file1   (archive one file)
+ >zip -r archive.zip Pictures/  - archive recursively 
+ 
+ //////////////////////////Unzip with ZIP ///////////
+ 
+ >unzip archive.zip 
+ 
+ ///////////////////////How to compress multiple files with gzip, bzip2 , xz /////////
+ 
+ Need to do two steps first TAR and then gzip,bzip2,xz:
+ a) tar --create --file archive.tar file1
+ b) gzip archive.tar   (or if we want to keep : gzip --keep arhive.tar)
+ 
+ OR to do it in one STEP (8 options):
+ 
+ > tar --create --gzip --file archive.tar.gz file1 OR tar cfz archive.tar.gz file1
+ > tar --create --bzip2 --file archive.tar.bz2 file1 OR tar cjf archive.tar.bz2 file1
+ > tar --create --xz --file archive.tar.xz file1 OR tar cJf archive.tar.xz file1
+ > tar --create --autocompress --file archive.tar.gz file1
+ > rat caf archive.xz file1 
+ 
+ ///////Extract (no need to tar to tell how to do this ///////
+ 
+ > tar --extract --file archive.tar.gz
+ > tar xf archive.tar.gz file1 
+ 
+ //////////////////////////Backup Files to a Remote System -with native Linux tools ///////////
+ 
+ rsync = remote syncranization .Remote server must have SSH daemon running 
+ 
+ ////////////////////Sync Two Directories ///////
+ 
+ rsync is a command‑line tool that efficiently synchronizes files and directories by copying only the parts that have changed, making it ideal for backups, mirroring, and transferring data locally or over SSH.
+ 
+ > rsync -a Pictures/ dani@192.168.2.101:/home/aaron/Pictures/ 
+ > rsync -a dani@192.168.2.101:/home/aaron/Pictures/ Pictures/ 
+ 
+ will sync from the next time only delta files which were not copied 
+ as well the option to sync two local directories
+ > rsync -a Pictures/ Backups/Pictures/ 
+ 
+ ////////////////Disk Imaging - (bit by bit copuing) ///////
+ But before you do the image from the disk - it should be unmount - to valiudate no new data be added to the disk during we create am image !!
+ 
+ How to checl if there a DISK or File or DIRECTORY:
+ > ls - l and then see the first char( example: drwxr-xr-x  2 root root 4096 Mar 30  /etc - where if "d" - directory, "-" =- regular file, "|" - symlink, "b" - block device)disk) , "c" - character device
+ 
+ > sudo dd if=/dev/vda of=diskimage.raw bs=1M status=progress (do not run this command in the virtual machine cause it will overwrite you virtual disk)
+ 
+ To restore image to the disk:
+ > sudo dd if=diskimage.raw of=/dev/vda bs=1M status=progress (do not run in the virtual machine - will overwrite the vm disk)
+ 
+ 
+ ///////Redirecting Input and Output /////////
+ 
+ By default output is to the terminal screen 
+ Sort data in the file
+ >sort file.txt
+ >1
+ >2
+ >3
+ >4
+ >5
+ 
+ Redirecting output: sort file.txt > sortedfile.txt (will create a file - if not exist + will overwrite existing data if data exist there)
+ 
+ Append data to the file sort file2.txt >> sortedfile.txt
+ 
+ >date 1> file.txt - 1 (one ) is the same redirecting of normal output data .
+        stdin - standard iput     (<) Examples: echo "one two three" | wc OR cat < myfile.txt .Or you can write >sort and then write few words + cntrl + D and get sorted words.
+        stdout -  standard output (1>)
+		stderr  - standart error   (2>)
+		
+For example when grep present a lot of permission denied errors (shown in red) ,so we can redirect it
+
+> grep -r '^The' /etc/		
+with redirection errors > grep -r '^The' /etc/ 2>/dev/null  (which means redirect dev messages out of screen - to the black hole :-) ,simpli discarded)
+
+how redirect both outputs to both files?:> grep -r '^The' /etc/ 1>output.txt 2>errors.txt  - or >> if wi want to append , like 1>>output.txt 
+
+or output good and errors to the same  file (like everything we see in the screen) ? :  grep -r '^The' /etc/ > all_output.txt 2>&1 
+or second option is: grep -r '^The' /etc/ 1>all_output.txt 2>&1 (which says errors send where 1 is going)
+or for example send errors to the screen(cause 1 we didn't redire but good output to the file:>grep -r '^The' /etc/ 2>&1 1>all_output.txt
+ 
+ /////////////////////////Heredoc and Here String //////////
+ 
+ >sort <<EOF  - when we want type , and end of line then it will be sorted 
+ >bc <<<1+2+3+4  - output 10,bc is command line calculator 
+ 
+ //////////////////////////Piping/////////////
+ > grep -v '^#' /etc/login/defs | sort | column -t 
+ Where: column -t is one of those tiny Unix tools that feels like magic once you see what it does. It takes messy, space separated text and turns it into a clean, aligned table.
+ 
+ 
+ 
+ 
+ 
+ 
