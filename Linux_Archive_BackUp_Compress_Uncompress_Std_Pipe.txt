@@ -1,4 +1,4 @@
-#Linux - Archve , Back Up, Compress and Uncompress files
+#Linux - Archive , Back Up, Compress and Uncompress files
 
 Archiving
 
@@ -61,7 +61,7 @@ all tree will do the same ,compress for exampe 50MB file to 5MB  -> file.gz as w
 
 /////////////////////////////Decompression ////////////
 
->gunzip file1.gz  OR gzip --decopress file1.gz
+>gunzip file1.gz  OR gzip --decompress file1.gz
 >bunzip file2.bz2 OR bzip2 --decompress file2.bz2
 >unxz file3.bz2 OR xz --decompress file3.xz
 
@@ -174,8 +174,63 @@ or for example send errors to the screen(cause 1 we didn't redire but good outpu
  > grep -v '^#' /etc/login/defs | sort | column -t 
  Where: column -t is one of those tiny Unix tools that feels like magic once you see what it does. It takes messy, space separated text and turns it into a clean, aligned table.
  
+ /////////////Exersizes //////
+ 
+ Create a tar archive logs.tar (under bob's home) of the/var/log/ directory.
+ 
+bob@ubuntu-host ~ ✖ sudo tar --create --file logs.tar /var/log/
+tar: Removing leading `/' from member names
+
+bob@ubuntu-host ~ ➜  tar -tf logs.tar
+var/log/
+var/log/journal/
+var/log/journal/56e82f441b024b54abbd06f23404c287/
+var/log/journal/56e82f441b024b54abbd06f23404c287/user-1000.journal
+var/log/journal/56e82f441b024b54abbd06f23404c287/system.journal
+
+Create a compressed tar archive logs.tar.gz (under bob's home) of the /var/log/ directory.
+
+bob@ubuntu-host ~ ➜  gzip logs.tar
+
+bob@ubuntu-host ~ ➜  ls
+logs.tar.gz
+
+or : sudo tar -czvf /home/bob/logs.tar.gz /var/log
+
+ bob@ubuntu-host ~ ➜  sudo tar -czvf -C /home/bob/logs.tar.gz /var/log
+tar: Removing leading `/' from member names
+/home/bob/logs.tar.gz
+tar: Removing leading `/' from hard link targets
+/var/log/
+/var/log/journal/
+/var/log/journal/56e82f441b024b54abbd06f23404c287/
+/var/log/journal/56e82f441b024b54abbd06f23404c287/user-1000.journal
+/var/log/journal/56e82f441b024b54abbd06f23404c287/system.journal
+
+bob@ubuntu-host ~ ➜  ls
+-C  logs.tar.gz
+
+bob@ubuntu-host ~ ➜  sudo tar czfP logs.tar.gz /var/log/
  
  
+ List the content of the /home/bob/logs.tar archive and save the output in the /home/bob/tar_data.txt file.
  
- 
+tar -tf /home/bob/logs.tar > /home/bob/tar_data.txt
+
+
+bob@ubuntu-host ~ ➜  cat tar_data.txt
+/etc/systemd/
+/etc/systemd/user/
+/etc/systemd/user/sockets.target.wants/
+/etc/systemd/user/sockets.target.wants/gpg-agent-ssh.socket
+/etc/systemd/user/sockets.target.wants/gpg-agent-extra.socket
+/etc/systemd/user/sockets.target.wants/gpg-agent.socket
+/etc/systemd/user/sockets.target.wants/gpg-agent-browser.socket
+/etc/systemd/user/sockets.target.wants/pk-debconf-helper.socket
+/etc/systemd/system/
+
+Extract the contents of /home/bob/archive.tar.gz to the /tmp directory.
+
+
+
  
