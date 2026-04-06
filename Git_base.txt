@@ -1,0 +1,144 @@
+////////////////Git Operations ////
+
+Usually Git already pre installed in ost of Linux systems
+
+bit let's run>sudp apt install git
+>git config --global user.name "dani liv"
+>git config --global user.email "daniliv@gmail.com"
+
+create some directory
+>mkdir my_project
+
+>cd my_project
+>git init (will initianalize)
+>ls .git - to see which files beencreated
+
+and you can see config file which we need to update with:
+
+>git config --global user.name "dani liv"
+>git config --global user.email "daniliv@gmail.com"
+
+to show the config file contebt:
+
+>cat .git/config
+
+Create some file:
+
+>echo "dani hello" > file1
+
+////////////////Git Staging and Commiting Changes ///////
+
+
+create a file
+> touch dani.txt
+>echo "some text" > dani.txt
+
+Check the status of the file/files:
+>git status
+
+(we can see the file in Untracked files at the moment)
+
+>git add dani.txt 
+
+>git status - will show us this file now in the staging area .It is like you open your camera on the iphone and campture some object bu do not shoot the picture yet.
+
+
+Unstage the file:
+>git reset dani.txt 
+
+More example:
+
+To add only the files to staging which .html > git add "*.html"
+
+To add subdirectory >git add Products/
+or to add only .html files from Products >git add "Products/*.html"  REMEMBER always to use quotes when you uses asterisk in the characters
+Remove multiple .html from the staging> git reset "Products/*.html"
+
+//////////////////Commit the chaneges /////////
+
+>git commmit -m "Added my file"   - "m" - means message
+
+
+///////////Git remove file //////
+
+>git rm "file1.txt"
+
+And need to commit removing as well:>git commit -m "Remove file1"
+
+
+
+//////////Git Branches /////
+
+create branch
+>git branch "dev"
+
+list all existing branches (local branhces)
+
+>git branch --list
+
+To swith between branches
+
+>git checkout branchname
+
+/////////////To see the history //////
+
+>git log   (to see who and when made a commit)
+
+
+>git log --raw (to see as well which file they modified) (A means added , M - modified , D - deleted)
+
+
+////////////////Merge //////
+
+For merging dev and aster branch need first do CHECKOUT to MASTER branch
+and then >git merge dev - so dev will be merged to the master
+
+////////To check remote repositories ///
+
+
+>git remote -v 
+
+>git remote add origin git@github:daniliv/coolproject.git - repository should be created before in the github!!
+
+
+generate ssh keys
+
+>ssh-key
+they key will be in the ..../.ssh/id_XXXXX.pub
+
+You can CAT it > cat  ~/.ssh/id_XXXXX.pub
+
+now go to Github-Setting-SSH and GPC keys -New SSH key (Authentication) and paste the key 
+
+
+Now we can push our local commits to the remote repo:
+
+>git push origin master
+
+/////////////////Clone the project//////////////////
+
+create directory
+
+>mkdir new_directory
+>cd new_directory
+>git clone git@github.com:daniliv/myproject.git
+
+/////////////////Git Help ////
+
+>git  - and you will see the options 
+or for command
+
+>man git add 
+
+
+
+
+
+
+
+
+
+
+
+
+
