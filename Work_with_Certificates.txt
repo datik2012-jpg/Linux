@@ -1,0 +1,65 @@
+
+
+////////////Work with Ceritifates ////////
+
+
+SSL in the past and now almost everythin os TLS
+
+SSL - secure socket layer
+TLS - transpor layer security
+
+Certificates are used to Encrypt the connection between User and Website .Authenticate.
+
+In linux command for create certifates is >openssl - yes still usin ssl in the name but will create TLS 
+openssl - can be used for more (not just certs creation ) to see that >openssl man
+For websire encryption there : X.509 
+>openssl help - to see the options and manuals or just >openssl
+
+We are focusing on "req" and "x509" commands
+
+To see the manual >man openssl req + tab twice 
+or for expecting "req" > openssl man req or >man openssl-req or >man openssl-x509
+
+To write /"yourtext" -  to find what you need
+
+////////////////CSR //////////
+Ceritifates Signing Request
+
+To keep connection encrypted between user and site(production) we can not use self-sign certificate - it should be signed by AYTHORITY
+then any browser can checl our certificate and see it as valid and legitimated
+
+How the generate a PRIVATE key and CSR:
+
+>openssl req -newkey rsa:2058 -keyout key.pem -out req.pem
+Where: we want to generate a key which type will be RSA 2048 bits and save it to the key.pem and CSR save to the req.pem
+And fill the Org,Country.....and password.In the end it will generate a private and encrypted key.pem and req.pem files (use >cat key.pem to see the key or CSR >cat req.pem)
+
+In production we will send this req.pem file + check our identity and to sign in Cetificate AYTHORITY to get e certificate.
+
+
+For local,lab we can do SELF-SIGN certificates:
+
+Meanings:
+-x509 - to generate x509 cetifcate
+-noenc - no ask for a password (in real do not recommend)
+-newkey rsa:4096 - use alghoritm
+-days 365 - valid cert for 365 days
+-keyout myprivate.key - save the private key to this file
+-out mycertificate.crt - save the certificate to this file
+
+>openssl req -x509 -noenc -newkey rsa:4096 -days 365 -keyput myprivate.kep -out mycertificate.crt 
+and need feel the prompts: Coutry name and etc....
+
+>openssl x509 -in mycertificate.crt -text - we will see the CERTIFICATE data content
+
+
+
+
+
+
+
+
+
+
+
+
