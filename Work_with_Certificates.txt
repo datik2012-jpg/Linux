@@ -1,3 +1,4 @@
+Essential-Commands-1-1: chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://kodekloud.com/kk-media/image/upload/v1723448054/course-resource-new/Essential-Commands-1-1.pdf?_gl=1*1bjgyig*_gcl_au*MTQzNDkzNTA4Mi4xNzcwNDg5NzAwLjUzNDg4OTY3LjE3NzU1ODA4MjMuMTc3NTU4MDgyMg..*_ga*MzMxMzE3MjU4LjE3NzA0ODk3MDA.*_ga_GNM9S6ZZKN*czE3NzU1ODQ0NjAkbzE0JGcxJHQxNzc1NTg0NDYyJGo1OCRsMCRoMTExNDE4NjYzMCRkOTFzQ0MtM05COVd2dmdrODYxSURHSkZFLU11UzQ5R1F0Zw..*_ga_CGG6CZZ99B*czE3NzU1ODA3MzYkbzEzJGcxJHQxNzc1NTg0NDYyJGo1OCRsMCRoMTY1NDUyNTQzMSRkeElLTkdhckVMcmx6QUNGc2VaZVBsUllaQjBQRTlabHNwUQ..*_ga_T25WYDKNNV*czE3NzU1ODQ0NjIkbzE0JGcwJHQxNzc1NTg0NDYyJGo2MCRsMCRoNjg1MTg4NjgxJGR4ZTVDbktSRkRvQTJ4MTB0MkVLTHZBaEh0NVp2WS1iUkhR
 
 
 ////////////Work with Ceritifates ////////
@@ -47,10 +48,49 @@ Meanings:
 -keyout myprivate.key - save the private key to this file
 -out mycertificate.crt - save the certificate to this file
 
->openssl req -x509 -noenc -newkey rsa:4096 -days 365 -keyput myprivate.kep -out mycertificate.crt 
+>openssl req -x509 -noenc -newkey rsa:4096 -days 365 -keyout myprivate.kep -out mycertificate.crt
 and need feel the prompts: Coutry name and etc....
 
 >openssl x509 -in mycertificate.crt -text - we will see the CERTIFICATE data content
+
+
+//////////////////LAB /////////
+
+Generate a 4096-bit RSA private key and a Certificate Signing Request with a single command. The private key should be encrypted with the following password: "kkloud".
+
+
+Save the key in a file called priv.key. Save the CSR in a file called cert.csr. There are no requirements for the certificate details like country name, organisation name, and so on. You can pick anything, or press Enter to pick the default values when prompted.
+
+openssl req -x509 -newkey rsa:4096 -days 365 -keyout priv.key -out cert.csr 
+
+bob@caleston-lp10 ~ ➜  ls
+cert.csr  priv.key
+
+Generate a self-signed certificate
+
+Use no encryption for the private key.
+Save the key in a file called priv.key.
+Set the expiration for the certificate to 365 days.
+Save the certificate in a file called kodekloud.crt.
+Set the Common Name to kodekloud.com. The rest of the certificate details you can set to whatever you want.
+
+>openssl req -x509 -noenc -newkey rsa:4096 -days 365 -keyout priv.key -out kodekloud.crt
+
+Common Name (e.g. server FQDN or YOUR name) []:kodekloud.com
+Email Address []:
+
+bob@caleston-lp10 ~ ➜  ls
+cert.csr  kodekloud.crt  priv.key
+
+
+In your /home/bob/ directory you will find a file called my.crt. What is the Common Name set in this certificate?
+
+>openssl x509 -in my.crt -text
+
+Answer: CN = labs.kodekloud.com
+
+
+
 
 
 

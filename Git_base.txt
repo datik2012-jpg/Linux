@@ -1,3 +1,4 @@
+Essential Command-1-1: chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://kodekloud.com/kk-media/image/upload/v1723448054/course-resource-new/Essential-Commands-1-1.pdf?_gl=1*1bjgyig*_gcl_au*MTQzNDkzNTA4Mi4xNzcwNDg5NzAwLjUzNDg4OTY3LjE3NzU1ODA4MjMuMTc3NTU4MDgyMg..*_ga*MzMxMzE3MjU4LjE3NzA0ODk3MDA.*_ga_GNM9S6ZZKN*czE3NzU1ODQ0NjAkbzE0JGcxJHQxNzc1NTg0NDYyJGo1OCRsMCRoMTExNDE4NjYzMCRkOTFzQ0MtM05COVd2dmdrODYxSURHSkZFLU11UzQ5R1F0Zw..*_ga_CGG6CZZ99B*czE3NzU1ODA3MzYkbzEzJGcxJHQxNzc1NTg0NDYyJGo1OCRsMCRoMTY1NDUyNTQzMSRkeElLTkdhckVMcmx6QUNGc2VaZVBsUllaQjBQRTlabHNwUQ..*_ga_T25WYDKNNV*czE3NzU1ODQ0NjIkbzE0JGcwJHQxNzc1NTg0NDYyJGo2MCRsMCRoNjg1MTg4NjgxJGR4ZTVDbktSRkRvQTJ4MTB0MkVLTHZBaEh0NVp2WS1iUkhR
 ////////////////Git Operations ////
 
 Usually Git already pre installed in ost of Linux systems
@@ -41,6 +42,7 @@ Check the status of the file/files:
 >git add dani.txt 
 
 >git status - will show us this file now in the staging area .It is like you open your camera on the iphone and campture some object bu do not shoot the picture yet.
+
 
 
 Unstage the file:
@@ -90,7 +92,7 @@ To swith between branches
 
 ////////////////Merge //////
 
-For merging dev and aster branch need first do CHECKOUT to MASTER branch
+For merging dev and master branch need first do CHECKOUT to MASTER branch
 and then >git merge dev - so dev will be merged to the master
 
 ////////To check remote repositories ///
@@ -129,6 +131,163 @@ create directory
 or for command
 
 >man git add 
+
+///////////////////LAB /////////
+
+We've created a local Git repository for you.
+
+Please switch to the directory called /root/kode to access it.
+You can stage all the files with the .cpp extension to prepare them for a future commit. The other files should NOT be staged.
+Next, create a commit with the following message: Added C++ files.
+
+bob@caleston-lp10 /🔒 ✖ sudo su
+
+root@caleston-lp10 / ➜  cd /root/kode
+
+root@caleston-lp10 kode on  master [?] ➜  git status
+On branch master
+
+No commits yet
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        file1.cpp
+        file2.cpp
+        file3.txt
+
+nothing added to commit but untracked files present (use "git add" to track)
+
+
+
+root@caleston-lp10 kode on  master [+?] ➜  git status
+On branch master
+
+No commits yet
+
+Changes to be committed:
+  (use "git rm --cached <file>..." to unstage)
+        new file:   file1.cpp
+        new file:   file2.cpp
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        file3.txt
+		
+		
+root@caleston-lp10 kode on  master [+?] ✖ git commit -m "Added C+ files"
+[master (root-commit) 6b121c6] Added C+ files
+ 2 files changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 file1.cpp
+ create mode 100644 file2.cpp
+ 
+ 
+ root@caleston-lp10 kode on  master [?] ✖ git status
+On branch master
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        file3.txt
+
+nothing added to commit but untracked files present (use "git add" to track)
+
+Fix git commit:
+
+git commit --amend -m "Added C++ files"
+
+Switch to the Git repository that can be found in the kode directory. Create a new branch called testing.
+
+
+NOTE: If you encounter an error while using a Git command, please exit the current directory and then re-enter it.
+
+>find . -type d -name ".git"  - do not see repositories (only one)
+
+>root@caleston-lp10 kode on  master [?] ➜  git branch testing
+
+root@caleston-lp10 kode on  master [?] ➜  git branch
+* master
+  testing
+  
+  
+In the local Git repository that can be found in the kode directory do the following:
+
+Delete the branch called "testing".
+The error you will encounter is expected.
+Figure out what is preventing you from performing the task, solve the issue, and then delete the "testing" branch?  
+
+root@caleston-lp10 kode on  testing [?] ✖ git branch -d testing
+error: Cannot delete branch 'testing' checked out at '/root/kode'
+
+root@caleston-lp10 kode on  testing [?] ✖ git branch --list
+  master
+* testing
+
+root@caleston-lp10 kode on  testing [?] ➜  git checkout master
+Switched to branch 'master'
+
+root@caleston-lp10 kode on  master [?] ✖ git branch -d testing
+Deleted branch testing (was 2f7b977).
+
+
+Go into the local Git repository found in the kode directory and find the file that modified in latest commit.
+
+root@caleston-lp10 kode on  master [?] ➜  git log --raw
+commit 85a9e317a5fb8d7a6842c9208ce2cc91033d1049 (HEAD -> master)
+Author: Bob <bob@kodekloud.com>
+Date:   Tue Apr 7 17:46:30 2026 +0000
+
+    Modified a project file
+
+:100644 100644 e69de29 a11f211 M        file2.cpp
+
+commit 2f7b977cccadcc896065d24912abe567b692aaf5
+Author: Bob <bob@kodekloud.com>
+Date:   Tue Apr 7 17:36:54 2026 +0000
+
+    Added C++ files
+
+:000000 100644 0000000 e69de29 A        file1.cpp
+:000000 100644 0000000 e69de29 A        file2.cpp
+
+
+Go into the local Git repository that you can find in the kode directory. Merge the documentation branch into the master branch.
+
+
+NOTE: If you encounter an error while using a Git command, please exit the current directory and then re-enter it.
+
+root@caleston-lp10 kode on  documentation ➜  git branch --list
+* documentation
+  master
+
+root@caleston-lp10 kode on  documentation ➜  git checkout master
+Switched to branch 'master'
+
+root@caleston-lp10 kode on  master ✖ git merge documentation
+Updating 28ca68a..4486f17
+Fast-forward
+ file3.txt | 0
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 file3.txt
+ 
+ 
+ 
+ What command would you use to push the master branch from your local repository to a remote repository nicknamed origin?
+ 
+ git push origin master
+ 
+ 
+ Clone the remote repository from https://github.com/kodekloudhub/git-for-beginners-course.git in your /home/bob/ directory. A subdirectory for the local repository will be automatically created.
+ 
+root@caleston-lp10 /home/bob ➜  git clone https://github.com/kodekloudhub/git-for-beginners-course.git
+Cloning into 'git-for-beginners-course'...
+remote: Enumerating objects: 557, done.
+remote: Counting objects: 100% (81/81), done.
+remote: Compressing objects: 100% (75/75), done.
+remote: Total 557 (delta 14), reused 36 (delta 6), pack-reused 476 (from 1)
+Receiving objects: 100% (557/557), 4.59 MiB | 21.64 MiB/s, done.
+Resolving deltas: 100% (203/203), done.
+
+
+
+
 
 
 
