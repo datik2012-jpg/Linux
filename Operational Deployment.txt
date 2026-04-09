@@ -1,0 +1,304 @@
+//////////////Operational Deployment ////////
+
+
+>systemctl reboot - for reboot
+>sudo systemctl - for reboot
+
+>sudo systemctl poweroff - for power off
+
+>sudo systemctl reboot --force - reboot even when some tasks not been completed or holding to reboot
+
+
+>sudo systemctl reboot --force --force - reboot like POWER OFF button ,a last resort (like reset buttonon the PC)
+>sudo systemctl poweroff --force --force - like UNPLUGING on the PC (last chance to power off the machine ;-) programs will not have a chance to cloce properly and save the data (--force -- force)
+
+>sudo shutdown 02:00 - scheduled shutdown at shceduled time
+
+>sudo shutdown +15 - shut down 15 minutes later
+
+>sudo shutdown -r 02:00 -    scheduled REBOOT at 02:00 
+
+>sydo shutdown -r +15 - scheduled REBOOT 15 minutes from now
+
+
+>sudo shutdown -r +1 'Scheduled restart to upgrade our Linux kernel' - to inform about RESTART before you scheduled restart
+
+
+
+/////////////Boot or Change System Into Diff //////
+
+>systemctl  get-default - get the program list during the boot - what chould be lounched and which order
+
+>sudo systemctl set-default multi-user.target - to change the what was the default to multi-user target 
+
++ need reboot the machine > sudo reboot 
+
+>sudo systemctl isolate graphical.target - switch to graphical applicaion Linux without reboot (so no default tagret changed)
+
+as well emegrency and resque target options existing:
+
+>emergency.tagtet - will load only few programs and good for debuging (when system is not stable) root file will be in READ only in this mode
+  
+>resque.target - essential programs been loaded as well multi user (root user password must be set , if you want do modifications) 
+
+////////////////Script //////
+
+>touch myscript.sh - create a file script
+
+>vim myscript.sh - open with vim editor the file   
+add inside #!/bin/bash - #! - shebang 
+script:
+#!/bin/bash
+
+#comments
+date >> /tmp/script.log
+cat /proc/versions >> /tmp/script.log #special file has detailed information about the curremt Linux Kernel verion
+
+then PRESS ESC : w q 
+
+DO NOT FORGET TO MAKE THE FILE EXECUTABLE !!!!  
+
+>chmod u+x script.sh - executable for the CURRENT USER (owner who created the file only)
+>chmod +x script.sh - executable for everybody (user onwer,group owner and others)
+
+
+To run the script with a full path
+>/home/dani/script.sh or ./script.sh (. represent the current directory - dot become /home/dani)
+
+Another script:
+
+>vim archive-apt.sh - will as well create the file so no need touch before
+
+#!/bin/bash
+
+tar acf /tmp/archive.tar.gz /etc/apt/ #archive the content from /etc/apt/ 
+
+>chmod +x archive-apt.sh - set execute for everybody
+>/archive-apt.sh - run it
+>ls /tmp - and we will get a archived in the /tmp : archive.tar.gz
+
+Note:
+
+-a (auto-compress): Tells tar to use the file extension to decide which compression algorithm to use.
+-c (create): Creates a new archive.
+-f (file): Specifies the filename of the archive. Note: The file name must come immediately after the 'f' flag
+
+>tar tf /tmp/archive.tar.gz - to look all the files inside the ARCHIVE
+
+In case we want to add IF to our script and we do not rememeber syntax:
+>help if - can help (or >help test)
+
+Modification to the script to keep previous archive if existing 
+
+#!/bin/bash
+
+
+if test -f /tmp/archive.tar.gz; then
+    mv /tmp/archive.tar.gz /archive.tar.gz.OLD
+	tar acf /tmp/archive.tar.gz /etc/apt/
+else
+    tar acf /tmp/archive.tar.gz /etc/apt/
+fi 
+
+>chmod +x archive-apt-2.sh
+>./archive-apt-2.sh
+
+>ls /tmp - check the archived files been created or not
+
+
+////////////Exit Status Code ////
+
+ESQ = 0; if command success
+ESQ > 1; if command failed or encountered error
+
+
+Check if grub has 5 timeout inside:
+
+>vim grub-check-timeout.sh
+
+#!/bin/bash
+
+if grep -q '5' /etc/default/grub; then   #-q means quite no output to the screen
+    echo 'Grub has timeout of 5 seconds'
+else
+    echo 'Grub does not have 5 second timeout'	
+	
+>chmod +x grub-check-timeout.sh
+>./grub-check-timeout.sh
+
+
+/////////Shell Scripting for Beginners - course suggestion to look //////
+
+////////////Manage Startup Processes and Services in Linux /////
+
+
+init - init system know how to start up applications and if it crashes restart it
+service , socket, device, timer - help to manage Linux :systemd - large collection of tools and components BUT as well the name of app resposible for system initialization
+and monitoring the system for smoth work 
+timer units - let us tell the init systems that it should launch a specific app once per week
+service units - wjat comand to issue to start up a programm ,what to do if a programm crashes
+	
+>man systemd.service - can provide more info 
+
+For example SSH Daemon should be running in the system to make the users be able to SSH from remote
+
+>systemctl cat ssh.service - we can see the service file content
+ExecStart - command which says to init what command to run when it starts SSH daemon
+ExecReload- says which command to run for reload configuration for the SSH daemon	
+Restrat - reastar if SSH daemon crashes
+
+To modify file instractions
+
+>sudo systemctl edit --full ssh.service
+or revert and back to default configuration>sudo systemctl revert ssh.service
+
+
+>sudo systemctl status ssh.service - to check the status of the SSH service:
+Loaded has "enabled" - means SSH daemon will start when system starts.
+Main PID - will show the IP process
+
+Press Q to exit from this satus
+
+>sudo systemctl stop ssh.service - stop the SSH 
+>sudo systemctl start ssh.service - start manually the SSH 	
+
+Sometime we need to change the settings of the program : /etc/ssh/sshd_config
+and of course need to restart the service to get the changes
+
+>sudo systemctl restart ssh.service - will restart and all connected user will be dropped
+
+>sudo systemctl reload ssh.service - will check out the satus of ssh service again
+
+or >sudo systemctl reload-or-restart ssh.service
+
+
+>sudo systemctl disable ssh.service - will disable in reboot
+>sudo systemctl status ssh.service - check the satus
+
+>sudo systemctl is-enabled ssh.service - to check if enabled or disabled : TRUE or FALSE
+
+>sudo systemctl enable ssh.service - to enable in the boot
+
+
+RedHat Linux family do not start in the boot automaticallu SSH daemon:
+so need to start SSH daemon:
+>sudo systemctl enable ssh.service
+>sudo systemctl start ssh.service
+
+or both in one shot:
+
+>sudo systemctl enable --now ssh.service (will enale in automatic boot up as well OR for disabling >sudo systemctl disable --now ssh.service (will disable in automatic boot up !!!!)
+
+Sometime some services can start if we stop them - like watchdog starts some services
+
+>sudo systemctl mask atd.service - brute way to prevent the service been started by another service
+
+The next comand will fail and no enable the service
+>sudo systemctl enable atd.service - failed cause service is masked
+
+as well fill be failed:
+>sudo systemctl start atd.service -cause service is masked
+
+About ATD: atd is a job scheduler daemon that runs jobs scheduled for later execution. These jobs are one-time task(not recurring) at a specific time scheduled using 'at' or 'batch' utility.
+https://www.geeksforgeeks.org/linux-unix/atd-command-in-linux-with-examples/
+
+>sudo systemctl unmask atd.service 
+
+Show all service units doesn't matter their status:
+>sudo systemctl listunits --type service --all
+coluns:UNIT             LOAD   ACTIVE SUB     DESCRIPTION 
+       apparmot.service loaded active running apparmor.service
+	   
+/////////////Build Application ///////
+
+We want something still watching our application status and restart it if it fails 
+
+>sudo vim /usr/local/bin/binmyapp.sh - create a script for the app
+
+#!/bin/bash
+
+echo "My App been started" | systemd-cat -t MyApp -p info #systemd-cat is utility which recieves messages and logs it , -t - adds identy to the log so we know the message belongs to the MyApp, -p sets the priority of the message to info
+sleep 5 #wait fot 5 seconds 
+echo "My App been crashed" | systemd-cat -t MyApp -p err 	 
+
+Make the file executable:
+
+>sudo chmod +x /usr/local/binmyapp.sh 
+
+How to create a SYSTEMD service ?
+we can look at MAN
+>man systemd.service
+and write /EXAMPLES to see what is the base file structure
+
+To see all existing systemd files already in the system:
+>ls /lib/systemd/system 
+
+For example we can copy the service SSH Daemon and modify it for our app:
+>sudo cp lib/systemd/system/ssh.service /etc/systemd/system/myapp.service 
+
+and now we can adit it:
+>sudo vim /etc/systemd/system/myapp.service  - tree parts it will have Unit,Service,Install
+In Unit part you can see:
+After = which says to run this service after services which is mentioned in this line
+ConditionPathExist = ! - says start the file only if this file is not exist
+In Service part:
+Environment - loads ENV variables listed int the file
+ExecStartPre - we can specify a program that should run before our appl will be launched
+so we can put :ExecStartPre=echo "systemd is preparing to start MyApp"
+ExecStart - path to the script: 
+ExecStart=/usr/local/bin/binmyapp.sh
+KillMode=process - says kill only this process and not any child  ,use KillMode=control-group - to kill any process created by this service
+Restart=on-failure - restart our app when it fails.When app exist 0 good and >0 is has an error 
+Restart=always 
+RestartSec=1 - will restarted with delay 1 second 
+Type=notify - will notify when it started (in our case we do not have kind of this capability).oneshot - when program that quickly opens ,do some deletion and then exits because nothing to do.Type=working - option that spawns many chid processes when it's executed
+Type=simple
+
+Install section:
+Normaly a server boots with a graphical user interface , but multiple users can still log in to a text onlyy interface
+To provide this environmenr where many people can log in ,a collection of applications needs to start. 
+Each target is a collection of services that should start up to achive a certain purpose:
+WantedBy=multi-user.target - is to start multi user (no graphical)
+So in our case we say this service (our MyApp) belongs to the multi-user.target group 
+Alias=sshd.service - instruct systemd to create links to our .service file in another locations
+Service for managing the SSh Daemon called sshd.service in RedHat family
+BUT Debian and Ubuntu it's called ssh.service (without the "d")
+So admin when run command systemctl sshd.service would encounter an error on Ubuntu
+so when we are linking here in Alias it will be working in Ubuntu 
+
+After modification we need save this file (which we modified: /etc/systemd/system/myapp.service)
+
+Now reload DAEMON service
+>sudo systemctl daemon-reload -when we edit ,add or remove service files we need to reload systemd daemon!!
+
+Now we can try to start our service:
+>sudo systemctl start myapp.service   - as you can see no need a path cause daemon will know where to check the file
+
+
+Now we can see system logs and check our messages which beed generated:
+>sudo journalctl -f   - where -f means follow mode
+
+To quit Crrl+ C - from systemlog 
+
+So as you can see need just know what to meantion in the service file:
+>man systemd. - can help with this 
+
+or >ls /lib/systemd/system - and investigate how these service files been created  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
