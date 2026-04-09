@@ -582,6 +582,101 @@ Type=simple
 [Install]
 WantedBy=multi-user.target
 
+Not related to the LAB:
+
+systemd-cgls
+
+cgroup сервиса
+
+├─system.slice
+│ ├─ssh.service
+│ │ ├─1234 /usr/sbin/sshd -D
+│ │ └─1250 sshd: bob@pts/0
+│ ├─cron.service
+│ └─NetworkManager.service
+
+system.slice
+Это cgroup‑контейнер, в котором systemd размещает обычные системные сервисы.
+В Linux есть три главных slice:
+
+system.slice — системные сервисы
+
+user.slice — пользовательские процессы
+
+machine.slice — виртуалки/контейнеры
+
+То есть system.slice — это «папка» для всех системных служб.
+
+
+2) ssh.service
+Это юнит systemd, отвечающий за SSH‑демон.
+
+systemd создаёт для него отдельную cgroup:
+
+Code
+/sys/fs/cgroup/system.slice/ssh.service/
+Внутри неё — все процессы, которые принадлежат этому сервису.
+
+
+
+3) 1234 /usr/sbin/sshd -D
+Это главный процесс SSH‑демона.
+
+PID: 1234
+
+Команда: /usr/sbin/sshd -D
+
+Именно этот процесс systemd считает MainPID сервиса.
+
+Он запущен в режиме -D (foreground), чтобы systemd мог им управлять.
+
+
+4) 1250 sshd: bob@pts/0
+Это дочерний процесс, созданный sshd для конкретного пользователя.
+
+PID: 1250
+
+Это сессия SSH пользователя bob
+
+pts/0 — виртуальный терминал, к которому подключён пользователь
+
+Каждое новое SSH‑подключение создаёт такой дочерний процесс.
+
+5) cron.service
+Это другой системный сервис, который тоже находится в system.slice.
+
+Он имеет свою собственную cgroup:
+
+6) NetworkManager.service
+Ещё один системный сервис — NetworkManager.
+
+Он тоже имеет свою cgroup и свои процессы.
+
+Итоговое понимание
+Каждая строка — это уровень иерархии cgroups:
+
+system.slice — контейнер для системных сервисов
+
+ssh.service — отдельная cgroup для SSH
+
+1234 — главный процесс sshd
+
+1250 — дочерний процесс sshd (пользовательская сессия)
+
+cron.service — другой сервис
+
+NetworkManager.service — ещё один сервис
+
+systemd использует cgroups, чтобы:
+
+отслеживать все процессы сервиса
+
+убивать сервис полностью
+
+ограничивать ресурсы
+
+изолировать сервисы друг от друга
+
 
 
 
