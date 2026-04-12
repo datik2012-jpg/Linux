@@ -1,0 +1,139 @@
+////////////Schedule Task to run a Set Time /////////
+
+Automatic Tasks - like to Backup the DB every Sunday 12:00 AM
+
+We have 3 ways to set the schedule task:
+
+Cron or Anacron or "at"  - so we have 3 utilities to do that
+
+Cron executs - minute,hour,Day,Other specific times
+Anacron - Day,Few Days,Week,Month,Year (but can not to run multile times per a day).This been added cause cron missed the job if PC was powered of all the time
+at - the task which should run only once
+
+>cat /etc/crontab - file which can remind how to set the cron job 
+
+* = match all possible values (i.e every hour)
+, = comma means match multiple values (i.e 15,45)
+- = dash specify a range of values(i.e 2-4)
+/ - specifues steps (i.e */4 ) run every 4 hour 0am ,4am,8am....As well 0-8/4 - in the hour field ,so range from 0 to 8 and 4 says step through this range in 4 hours increments
+
+Better to modify users cron table instead system-wide cron table which can be overwritten by update 
+
+> which touch - It tells you the full path of the touch command on your system.
+/usr/bin/touch
+
+>crontab -e - will get the cron table of the current user which current logged to the system
+
+>crontab -e 
+35 6 * * * /usr/bin/touch test_passed  - create a file avery day 6:35AM 
+
+or for example:
+0 3 * * 0 /usr/bin/touch test_passed - to run every Sunday 3 AM
+0 3 * * * /usr/bin/touch test_passed - to run every day 3 AM
+0 * * * * /usr/bin/touch test_passed - 
+
+To see the crontab o the current user:
+>crontab -l
+
+To see the cron job for the root user:
+>sudo crontab -l
+
+If you want to edit crontab for different user:
+>sudo crontab -e -u jane
+30 * * * * /usr/bin/touch test_passed
+Remember: only root user can modify the crone for all users
+
+To remove your user cron job:
+>crontab -r
+
+To remove cron job for different user we remove for jane:
+>sudo crontab -r -u jane 
+
+//////////////////////////////
+If cron exist in one of it will be running daily,hourly,monthly,weekly:
+
+daily = /etc/cron.daily/
+hourly = /etc/cron.hourly/
+monthly = /etc/cron.monthly/
+weekly = /etc/cron.weekly/
+
+Create file with name shellscript (yes -  waird name for a script)
+>touch shellscript -  will create a file named "shellscript" ,if you want to use it inthe cron job it should not have .sh extention !!!
+shellcript.sh - can not be used for a cron job
+
+To run it hourly we can do next:
+>sudo cp shellscript /etc/cron.hourly/ - copy shellsript to the hourly cron job 
+Need to make a script readable and executable:
+>sudo chmod +rx /etc/cron.hourly/shellscript
+
+and in case you need to remove the job:
+>sudo rm /etc/cron.hourly/shellscript
+
+////////////////////Anacron ////////
+
+Note:Not always exist in every Linux systems - so need to install it before using!!
+
+Check which anacron jobs exist if any:
+
+>sudo vim /etc/anacrontab
+
+3  10  test job /usr/bin/touch  /root/anacron_created_this   - which is meaning run a job every 3 days ,with a delay 10 minutes,"test job" - is a job ID or Name . And : /usr/bin/touch  /root/anacron_created_this - which will run create file as a root user
+7  10  test job /usr/bin/touch  /root/anacron_created_this - run every week 
+@monthly 10 test job /usr/bin/touch  /root/anacron_created_this - to run every month
+
+To check if the cron job has coorect syntax:
+>anacron -T - if correct we will not see any message
+
+Note:cron and anacron - pereodically jobs 
+
+/////////////////at utility //////////
+
+use "at" when need to run only once
+
+>at '15:00'
+
+No need for "at" full path to the command like we did for "touch", it can be running with>touch file
+
+Enter to add additional job
+Ctrl+D - save
+
+Example:
+
+>at '15:00'
+at>/usr/bin/touch file_created_by_at
+
+Set je job to run at specific date or date and time:
+
+>at 'March 20 2026'
+
+>at '2:30 April 20 2026'
+
+To run 30 minutes later:
+
+>at 'now + 30 minutes'
+
+Or 3 hours later:
+>at 'now + 3 hours'
+
+3 days ,or 3  weeks or 3 month from now:
+
+>at 'now + 30 days'
+
+>at 'now + 3 weeks'
+
+>at 'now + 3 month'
+
+To check what is scheduled at the moment:
+>atq 
+
+and to check what the job contains:
+>atq -c 1
+
+>atrm 1 - will remove the job 
+
+
+
+
+
+
+
