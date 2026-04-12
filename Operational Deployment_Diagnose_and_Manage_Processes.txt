@@ -1,0 +1,394 @@
+///////////Diagnose and Manage Processes ////////
+
+For example two syntax options:
+ps -a - is Unix syntax
+ps a - BSD syntax (different effect)
+ps - will show processes in the current window or session
+
+To see all the processes in the system:
+>ps aux   - where a - all , u -user oriented format 
+
+Can help: man ps - to see more options (/examples - you can see there)
+
+
+>top - see processes which uses most CPU and MEM
+
+>ps ID - use precess ID to get info about specific processes
+
+>ps u 1 - to see the process ID=1 info in USER-ORIENTED format
+
+>ps -U bob - to see the process started by specific USER
+>ps u -U bob - to see the processes started by BOB , and we want to see it in "u" - user oriented format
+
+
+>pgrep -a syslog - to search process by a name .We want to find precess with name "syslog" . "a" - means all
+
+NICENESS - how process nice to another process in Linux
+Can be Numbers can be from -20 to 19.Lower number is less niceness - LOWER NUMBER MEANS HIGHER PRIORITY !!!
+
+For example both services running in the same time and we need to use all CPU which is available:
+Process A has -20 - is higher priority and will leave less CPU for process B. A can use 95% of CPU
+Process B has 19 - for example will get 5% of CPU only.
+
+>nice -n [nice value] [command]
+For exampel assign 11 to the bash command we need to run:
+> nice -n 11 bash
+
+To see nice values with ps command we need to use next commnad with (l - lora):
+>ps l - and NI column we can see the nice
+>ps laux - to see NICE values for all processes and in user format.
+
+To see which process started by which process (TREE like branches):
+>ps fax 
+>ps faux - to see as well CPU and process branches TREE 
+Use >exit  - to exit from
+
+To assign lower nice value to higher priority - WE NEED to use root proviligies
+>nice -n -12 bash - will fail cann not set nice - Permission denied
+
+so need root> sudo nice -n -12 bash 
+and validate it was set> ps lax
+
+SO:  nice - sets priority when starting a process
+     renice - changes priority after it’s already running
+	 
+
+Permission rules:
+
+Regular users can only increase their nice value (lower priority).
+
+Only root can decrease nice value (raise priority).	
+
+When to use:
+
+A background job is hogging CPU and slowing your system → increase its nice value.
+
+A critical job needs more CPU time → decrease its nice value (root only).
+
+Managing long-running tasks on servers to keep the system responsive.
+
+>renice 7 12345 - renice to 7 for PID=12345 
+To make renice lower need root permissions> root renice 5 12345
+
+//////////////Signals ////////////
+
+>kill -L - see all the options for SIGNALS 
+
+
+Check SSH daemon pid>systemctl status ssh.service - and we will see for example PID:1457
+>kill -SIGHUB 1457 - user can sends signals to only user owned processes,if process is running with root user:
+>root kill -SIGHIB 1457
+Now check the status of the SSH Daemon:
+>systemctl status ssh.service -  we will se the status for SSH Daemeon is RESTARTING
+
+Default signal is SIGTERM - even if we will not mention
+SIGTERM - will give the chance to the service cloase down normally and complete 
+
+
+To find all bash processes if we want to use PID in signal :
+>pgrep -a bash - wil show process and it's PID
+>pkill -KILL bash - will kill bash process
+
+
+Sleep 180 for the bash window:
+>sleep 180 - window will go to sleep for 3 min
+Escape from the sleep> Ctrl+C
+
+
+Nice : for example we are editing the file:
+>vim dani.txt
+And we want to leav it open and exit to do something else:
+>Crtl+Z - we will back to the bash termnal
+
+For returning to pur PAUSED VIM we can do in bash
+> fg    - which means foregroud
+
+
+/////////////TO run the command in the background /////
+
+>sleep 300 & - appersand will say to the command do a work in the background and do not block use
+
+To see all background jobs:
+>jobs - see all background jobs  (as you can see this job will show it's ID)
+
+So back to this background job need to use it's ID:
+>fg 100 - where 100 is background PID
+
+
+>Ctrl+Z - suspend a running job . the shell stops it and marks it as a stopped job.
+>bg -resume it in the background. bg changes its state to running but keeps it detached from the terminal.
+>fg - bring it to the background
+
+
+////////////To see which files or direcories process is using ////////
+
+>pgrep -a bash - to find a PID of the bash shell for example
+
+>lsof -p 1356 - to see which files or directories is in use for this bash service
+
+in case process is running by root user and we want to see:
+>sudo lsof -p 1234 - to see all directories and files by process which is running by root user
+
+To check the path if any process is using this directory:
+>lsof /var/log/auth.log - can show nothing cause need ROOT perm to see this directory
+>sudo lsof /va/log/auth.log 
+
+////////////////////Locate and Analyze System Log Files ///////
+
+Satus messages , Error Messages , Warning Messages - been generated when programs are running inthe system
+
+Collected and organized in the files - usually logging daemons do it for us
+One of the popular is - rsyslog - which means Rocket Fast System for Log Processing
+
+And rsyslog stores all the logs in the:
+>ls /var/log/ - you can see there archived and not only logs
+
+Remember most of the logs need ADMIN access to read them , so login with admin user:
+
+>su --login - login with admin (must provide a password) or >sudo --login
+
+
+Search for all the files which contais anything related to the "ssh" in the logs:
+>grep -r 'ssh' /var/log/ - and we will see which log files existing
+
+then we can ask to open that log:
+>less /var/log/auth.log
+
+To see the log been updating (in case some service still writing to it):
+>tail -F /va/log/auth - where F means follow
+
+and click >Ctrl + C to exit the follow mode
+
+BUT we have an easier way to deal with logs:
+
+Systemd Journal Daemon - is a modern and smarted about it collectsthe data
+it let us analyze logs more efficently:
+>journalctl /usr/bin/sudo - filter a logs generated by a specific command
+
+First we need to find a path to the command (where it sits):
+>which sudo - will tell us where "sudo" utility is located : /usr/bin/sudo
+
+and now we can tell tp journalctl to tell:
+>journalctl /usr/nin/sudo - so hournal will find the logs which only generated by "sudo" command
+
+
+For example find logs generated by SSH.service unit:
+>systemctl -u ssh.service 
+
+To see all logs collected by journalctl:
+>journalctl
+
+To go to the end og systemctl output:
+>journalctl -e
+
+Follow mode for systemctl:
+>systemctl -f - now we will have live view of all new logs appear in the system
+press Ctrl+C to exit
+
+
+info warning err crit
+
+To show us the messages tag with error:
+>journalctl -p err - will show us error lines in the files (p - means priority)
+
+To see all the priority options:
+>journalctl -p - will show :aler,crit,debug,emerg,err,info,notice,warning
+
+
+As well the option to use a grep:
+>journalctl -p info -g '^b' - find all lines in logs where message starts with B or b letters
+
+>journalctl -S 02:00 - whow us the logs which generated since 2AM time
+
+>journalctl -S 02:00 -U 03:00 - show all logs wich generated from 2 AM until 03 AM
+
+>journalctl -S '2026-04-02 01:00:00' - to show all logs generated from specific date
+
+Logs been grouped in the system when system booted 
+>journalctl -b 0 - will show us the logs which related to the last boot . 0 means current boot
+
+>journalctl -b -1  -to see the logs from previus boot . For two boots ago see all the logs >systemctl -b -2
+
+Usually in the systems configure do not keep all logs and they not been saved from the previous boots
+
+System journal can be confugured to save the logs at /var/log/journal
+If directory not exist - will not save the logs on the disk
+If directory exist - will start to preserve
+
+So if we create the direcotry it will start save the logs:
+>sudo mkdir var/log/journal/
+
+/////////////To see who logged to the system ///
+
+>last - as well you can see when system was rebooted
+
+>lastlog - can whow us which user was last login to the system
+
+////////////////////////LAB //////////////////////////////
+
+How can we see all processes running on the system along with their nice values?
+
+>ps lax 
+
+Sleep for 10 minutes:
+>sleep 10
+
+By default all logs in the Linux:
+
+/var/log/
+
+Assign a nice value of 9 to the sshd process.
+
+First need to get the ssh process id:
+>systemctl status ssh.service
+Main PID: 1116 (sshd)
+
+Check the current nice for this service:
+>ps -o pid,ni,comm -p 1116
+
+bob@ubuntu-host ~ ✖ ps -o pid,ni,comm -p 1116
+    PID  NI COMMAND
+   1116   0 sshd
+   
+Assign a nica value to the ssh.service:
+ 
+>renice 9 1116   - renice to 9 for PID=1116
+
+bob@ubuntu-host ~ ✖ sudo renice 9 1116
+1116 (process ID) old priority 0, new priority 9
+
+List all files that are opened by the process with PID 1; this process is owned by the root user.
+
+Save the output in the /home/bob/files.txt file.
+
+>sudo lsof -p 1 > /home/bob/files.txt
+
+Search the logs for entries related to the SSH daemon. Find out what IP address last connected to this daemon successfully.
+
+Save that IP in the /home/bob/ip.txt file.
+
+sudo journalctl -u ssh.service
+I just search manually and find some line with connected and later disconnected ip 192.168.13.141
+echo "192.168.13.141" > /home/bob/ip.txt
+
+Or do it in the one line:
+
+bob@ubuntu-host ~ ✖ sudo journalctl -u ssh.service | grep "Accepted" | tail -1
+Apr 12 09:56:35 ubuntu-host sshd[86459]: Accepted publickey for root from 192.168.13.141 port 58430 ssh2: RSA SHA256:2YWkjYGMHTT3hze/OQcpSuA4UGUd9STH40lsMErlHwY
+
+
+Identify the PID of the process named rpcbind and save its value in the /home/bob/pid.txt file.
+
+First search by process name:
+
+bob@ubuntu-host ~ ✖ pgrep -a rpcbind
+589 /sbin/rpcbind -f -w
+
+pgrep -a rpcbind | cut -d ' ' -f1 > /home/bob/pid.txt  - will exctract first column only 
+
+
+With the systemctl command, find out the PID of the process currently managed by the ssh.service. Send the SIGHUP signal to this process.
+
+bob@ubuntu-host ~ ✖ systemctl status ssh.service
+● ssh.service - OpenBSD Secure Shell server
+     Loaded: loaded (/lib/systemd/system/ssh.service; enabled; vendor preset: enabled)
+     Active: active (running) since Sun 2026-04-12 09:10:14 UTC; 55min ago
+       Docs: man:sshd(8)
+             man:sshd_config(5)
+    Process: 1087 ExecStartPre=/usr/sbin/sshd -t (code=exited, status=0/SUCCESS)
+   Main PID: 1116 (sshd)
+      Tasks: 1 (limit: 77149)
+     Memory: 1.7M
+        CPU: 17.617s
+     CGroup: /system.slice/ssh.service
+             └─1116 "sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups"
+
+Warning: some journal files were not opened due to insufficient permissions.
+
+bob@ubuntu-host ~ ✖ sudo kill -SIGHUP 1116
+
+Note:
+Reload configuration and continue running.
+
+Note: Your kill -SIGHUP did work, but it did exactly what SIGHUP is supposed to do — it reloads the SSH daemon, not stop it.
+
+That’s why the service is still running. Nothing is wrong.
+
+Let me break it down so you can see what’s happening.
+
+
+
+Under the /var/log directory, search for all files containing the reboot string and save the search result in the /home/bob/reboot.log file.
+
+bob@ubuntu-host ~ ✖ sudo journalctl -p info -g 'reboot string' 
+Apr 12 10:13:06 ubuntu-host sudo[115455]:      bob : TTY=pts/2 ; PWD=/home/bob ; USER=root ; COMMAND=/usr/bin/journalctl -p info -g 'reboot string'
+
+bob@ubuntu-host ~ ➜  sudo journalctl -p info -g 'reboot string' > /home/bob/reboot.log 
+
+Analyze the error logs through journalctl with the priority flag and copy the output to /home/bob/.priority/priority.log.
+
+
+sudo journalctl -p err > /home/bob/.priority/priority.log
+
+Analyze the info priority logs through journalctl that begin with letter c and store the output in the /home/bob/.priority/boot.log file.
+
+
+
+sudo journalctl -p info -g '^c' > /home/bob/.priority/boot.log
+
+Example: sudo journalctl -p info -g '^c'
+
+Apr 12 10:16:52 ubuntu-host auditd[122603]: Could not open dir /var/log/audit (No such file or directory)
+Apr 12 10:16:52 ubuntu-host sshd[122762]: Connection closed by 10.130.0.119 port 52124
+Apr 12 10:16:55 ubuntu-host sshd[122795]: Connection closed by 10.130.0.119 port 52126
+Apr 12 10:16:57 ubuntu-host auditd[122769]: Could not open dir /var/log/audit (No such file or directory)
+Apr 12 10:16:58 ubuntu-host sshd[122936]: Connection closed by 10.130.0.119 port 52140
+Apr 12 10:17:01 ubuntu-host sshd[123021]: Connection closed by 10.130.0.119 port 57140
+Apr 12 10:17:01 ubuntu-host auditd[122911]: Could not open dir /var/log/audit (No such file or directory)
+
+
+Using the ps command, display information for the process with PID 1 in a way that includes its CPU and memory usage, and save the complete command output to the file
+/home/bob/resources.txt
+
+bob@ubuntu-host ~ ➜  ps u 1
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           1  0.0  0.0 165592 11300 ?        Ss   09:10   0:06 /sbin/init --log-level=err
+
+bob@ubuntu-host ~ ➜  ps u 1 > /home/bob/resources.txt
+
+
+Run a command to sleep for 3000 seconds and make sure it is running in the background.
+
+bob@ubuntu-host ~ ✦ ✖ sleep 3000 &
+[2] 139577
+
+Go to this background job:
+bob@ubuntu-host ~ ✦2 ✖ fg 2
+sleep 3000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+ 
