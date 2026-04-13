@@ -48,7 +48,7 @@ Remove as well all dependencies nginx and nginx:
 
 ///////////////////Configure the Repositories of Package Manager /////////
 
->suod vim /etc/apt/sources.list - to look this file in old Ubuntu version
+>sudo vim /etc/apt/sources.list - to look this file in old Ubuntu version
 
 in Ubuntu new versions(22)
 
@@ -217,9 +217,320 @@ And now i can run the app from my own directory without the path:
 
 >newapp  - will run the app !!!!
 
+////////////////////////LAB ///////////
+
+apt update vs apt upgrade
 
 
 
+Install the Apache web server.
+
+To find the package you need, you can search for this text: apache http server. In your search command, you can wrap this search string between " " double quotes to get fewer results and find the package easier.
+
+Install apache:
+sudo apt install apache2
+
+
+Check if apache installed:
+sudo systemctl status apache2
+Start apache:
+sudo systemctl start apache2
+Enable on boot
+sudo systemctl enable apache2
+Restart after config changes
+sudo systemctl restart apache2
+
+
+bob@ubuntu-host ~ ➜  sudo systemctl start apache2
+
+bob@ubuntu-host ~ ➜  sudo systemctl status apache2
+● apache2.service - The Apache HTTP Server
+     Loaded: loaded (/lib/systemd/system/apache2.service; enabled; vendor preset: enabled)
+     Active: active (running) since Mon 2026-04-13 16:46:19 UTC; 9s ago
+       Docs: https://httpd.apache.org/docs/2.4/
+    Process: 45357 ExecStart=/usr/sbin/apachectl start (code=exited, status=0/SUCCESS)
+   Main PID: 45453 (apache2)
+      Tasks: 55 (limit: 77149)
+     Memory: 5.3M
+        CPU: 557ms
+     CGroup: /system.slice/apache2.service
+             ├─45453 /usr/sbin/apache2 -k start
+             ├─45454 /usr/sbin/apache2 -k start
+             └─45455 /usr/sbin/apache2 -k start
+
+Apr 13 16:46:19 ubuntu-host apachectl[45452]: AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 192.168.96.172. Set the 'ServerName' directive globally to suppress this message
+
+Search for apache:
+
+bob@ubuntu-host ~ ✖ apt search 'apache http server'
+Sorting... Done
+Full Text Search... Done
+apache2/jammy-updates,jammy-security 2.4.52-1ubuntu4.19 amd64
+  Apache HTTP Server
+
+apache2-bin/jammy-updates,jammy-security 2.4.52-1ubuntu4.19 amd64
+  Apache HTTP Server (modules and other binary files)
+
+apache2-data/jammy-updates,jammy-security 2.4.52-1ubuntu4.19 all
+  Apache HTTP Server (common files)
+
+apache2-dev/jammy-updates,jammy-security 2.4.52-1ubuntu4.19 amd64
+  Apache HTTP Server (development headers)
+
+apache2-doc/jammy-updates,jammy-security 2.4.52-1ubuntu4.19 all
+  Apache HTTP Server (on-site documentation)
+
+apache2-ssl-dev/jammy-updates,jammy-security 2.4.52-1ubuntu4.19 amd64
+  Apache HTTP Server (mod_ssl development headers)
+
+apache2-suexec-custom/jammy-updates,jammy-security 2.4.52-1ubuntu4.19 amd64
+  Apache HTTP Server configurable suexec program for mod_suexec
+
+apache2-suexec-pristine/jammy-updates,jammy-security 2.4.52-1ubuntu4.19 amd64
+  Apache HTTP Server standard suexec program for mod_suexec
+
+apache2-utils/jammy-updates,jammy-security 2.4.52-1ubuntu4.19 amd64
+  Apache HTTP Server (utility programs for web servers)
+
+open-infrastructure-apache-tools/jammy 20220105-1 all
+  additional tools for Apache HTTP server
+  
+After Installation check and see it is installed:
+
+bob@ubuntu-host ~ ✖ apt search 'apache http server'
+Sorting... Done
+Full Text Search... Done
+apache2/jammy-updates,jammy-security,now 2.4.52-1ubuntu4.19 amd64 [installed]
+  Apache HTTP Server
+
+apache2-bin/jammy-updates,jammy-security,now 2.4.52-1ubuntu4.19 amd64 [installed,automatic]
+  Apache HTTP Server (modules and other binary files)
+
+apache2-data/jammy-updates,jammy-security,now 2.4.52-1ubuntu4.19 all [installed,automatic]
+  Apache HTTP Server (common files)
+
+apache2-dev/jammy-updates,jammy-security 2.4.52-1ubuntu4.19 amd64
+  Apache HTTP Server (development headers)
+
+apache2-doc/jammy-updates,jammy-security 2.4.52-1ubuntu4.19 all
+  Apache HTTP Server (on-site documentation)
+
+apache2-ssl-dev/jammy-updates,jammy-security 2.4.52-1ubuntu4.19 amd64
+  Apache HTTP Server (mod_ssl development headers)
+
+apache2-suexec-custom/jammy-updates,jammy-security 2.4.52-1ubuntu4.19 amd64
+  Apache HTTP Server configurable suexec program for mod_suexec
+
+apache2-suexec-pristine/jammy-updates,jammy-security 2.4.52-1ubuntu4.19 amd64
+  Apache HTTP Server standard suexec program for mod_suexec
+
+apache2-utils/jammy-updates,jammy-security,now 2.4.52-1ubuntu4.19 amd64 [installed,automatic]
+  Apache HTTP Server (utility programs for web servers)
+
+open-infrastructure-apache-tools/jammy 20220105-1 all
+  additional tools for Apache HTTP server
+  
+  
+  
+  
+Find out the name of the package that "/bin/ls" belongs to and save it in package.txt under /home/bob.
+
+
+bob@ubuntu-host ~ ➜  dpkg --search "/bin/ls" > /home/bob/package.txt
+
+or check for "pwd":
+bob@ubuntu-host ~ ✖ dpkg --search "/bin/pwd" 
+coreutils: /bin/pwd
+
+or check for "cat":
+bob@ubuntu-host ~ ✖ dpkg --search "/bin/cat" 
+coreutils: /bin/cat
+
+check for tar:
+bob@ubuntu-host ~ ✖ dpkg --search "/bin/tar" 
+tar: /bin/tar
+
+for "ping"
+bob@ubuntu-host ~ ✖ dpkg --search "/bin/ping" 
+iputils-ping: /bin/ping
+
+Or run to check which packages do we have in the folder: 
+
+bob@ubuntu-host ~ ✖ ls /bin/
+
+  
+List the files that belong to the coreutils package. Filter out the entries that were installed in the /bin directory. You will see one file in this /bin directory with a name that begins with the letter "u". Identify the complete path of this file in the /bin directory and save it in name.txt file under /home/bob?
+
+
+dpkg --listfiles coreutils - will show huge list of files
+
+More then one file with "u" !!!
+
+bob@ubuntu-host ~ ✖ dpkg --listfiles coreutils | egrep "/bin/u"
+/bin/uname
+/usr/bin/unexpand
+/usr/bin/uniq
+/usr/bin/unlink
+/usr/bin/users
+
+bob@ubuntu-host ~ ✖ dpkg --listfiles coreutils | egrep "/bin/u" > /home/bob/name.txt
+
+
+Uninstall the package ziptool and its dependency package(s) from the system.
+
+bob@ubuntu-host ~ ✖ apt show ziptool
+Package: ziptool
+Version: 1.7.3-1ubuntu2
+Priority: optional
+Section: universe/utils
+Source: libzip
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Stefan Schörghofer <amd1212@4md.gr>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 67.6 kB
+Depends: libc6 (>= 2.34), libzip4 (>= 1.7.0)
+Homepage: https://libzip.org
+Download-Size: 16.9 kB
+APT-Manual-Installed: yes
+APT-Sources: http://archive.ubuntu.com/ubuntu jammy/universe amd64 Packages
+Description: modify zip archives
+
+Uninstall:
+
+bob@ubuntu-host ~ ✖ sudo apt remove ziptool
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following packages were automatically installed and are no longer required:
+  libltdl7 libzip4
+Use 'sudo apt autoremove' to remove them.
+The following packages will be REMOVED:
+  ziptool
+0 upgraded, 0 newly installed, 1 to remove and 0 not upgraded.
+After this operation, 67.6 kB disk space will be freed.
+Do you want to continue? [Y/n] y
+(Reading database ... 22324 files and directories currently installed.)
+Removing ziptool (1.7.3-1ubuntu2) ...
+Processing triggers for man-db (2.10.2-1) ...
+
+Remove as well all dependencies for ziptool:
+
+bob@ubuntu-host ~ ✖ sudo apt autoremove ziptool
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+Package 'ziptool' is not installed, so not removed
+The following packages will be REMOVED:
+  libltdl7 libzip4
+0 upgraded, 0 newly installed, 2 to remove and 0 not upgraded.
+After this operation, 578 kB disk space will be freed.
+Do you want to continue? [Y/n] Y
+(Reading database ... 22318 files and directories currently installed.)
+Removing libltdl7:amd64 (2.4.6-15build2) ...
+Removing libzip4:amd64 (1.7.3-1ubuntu2) ...
+Processing triggers for libc-bin (2.35-0ubuntu3.13) ...
+
+
+Check if zip exist :
+bob@ubuntu-host ~ ✖ dpkg -S /usr/bin/zip
+dpkg-query: no path found matching pattern /usr/bin/zip
+
+
+In rare cases, we may need to get packages that were available on an older Ubuntu distribution.
+
+Configure the package manager with this extra repository:
+
+deb http://us.archive.ubuntu.com/ubuntu/ focal main
+
+
+This will make packages from Ubuntu 20.04 (codenamed Focal Fossa) available on this system.
+
+Don't forget to also update APT's local cache
+
+sudo vim /etc/apt/sources.list - in old ubuntu versions apt is using this file
+
+added line:
+deb http://us.archive.ubuntu.com/ubuntu/ focal main
+
+Don't forget to also update APT's local cache:
+
+sudo apt update
+
+
+In the tmux directory, you will find the source code for the tmux application. All compilation tools and libraries were already installed for you.
+
+Build the application (compile source code).
+Install it on the system.
+
+
+
+
+bob@ubuntu-host ~ ✦ ➜  cd tmux
+
+>more README  - cause less is ot installed !!
+
+bob@ubuntu-host tmux🔒 on  master ✦ ➜  ls
+alerts.c               cmd-list-buffers.c    cmd-select-window.c        format-draw.c    osdep-darwin.c     spawn.c
+arguments.c            cmd-list-clients.c    cmd-send-keys.c            fuzz             osdep-dragonfly.c  status.c
+attributes.c           cmd-list-commands.c   cmd-server-access.c        grid.c           osdep-freebsd.c    style.c
+autogen.sh             cmd-list-keys.c       cmd-set-buffer.c           grid-reader.c    osdep-haiku.c      SYNCING
+cfg.c                  cmd-list-panes.c      cmd-set-environment.c      grid-view.c      osdep-hpux.c       tmux.1
+CHANGES                cmd-list-sessions.c   cmd-set-option.c           hyperlinks.c     osdep-linux.c      tmux.c
+client.c               cmd-list-windows.c    cmd-show-environment.c     image.c          osdep-netbsd.c     tmux.h
+cmd-attach-session.c   cmd-load-buffer.c     cmd-show-messages.c        image-sixel.c    osdep-openbsd.c    tmux-protocol.h
+cmd-bind-key.c         cmd-lock-server.c     cmd-show-options.c         input.c          osdep-sunos.c      tools
+cmd-break-pane.c       cmd-move-window.c     cmd-show-prompt-history.c  input-keys.c     osdep-unknown.c    tty-acs.c
+cmd.c                  cmd-new-session.c     cmd-source-file.c          job.c            paste.c            tty.c
+cmd-capture-pane.c     cmd-new-window.c      cmd-split-window.c         key-bindings.c   popup.c            tty-draw.c
+cmd-choose-tree.c      cmd-parse.y           cmd-swap-pane.c            key-string.c     presentations      tty-features.c
+cmd-command-prompt.c   cmd-paste-buffer.c    cmd-swap-window.c          layout.c         proc.c             tty-keys.c
+cmd-confirm-before.c   cmd-pipe-pane.c       cmd-switch-client.c        layout-custom.c  README             tty-term.c
+cmd-copy-mode.c        cmd-queue.c           cmd-unbind-key.c           layout-set.c     README.ja          utf8.c
+cmd-detach-client.c    cmd-refresh-client.c  cmd-wait-for.c             log.c            regress            utf8-combined.c
+cmd-display-menu.c     cmd-rename-session.c  colour.c                   logo             regsub.c           window-buffer.c
+cmd-display-message.c  cmd-rename-window.c   compat                     Makefile.am      resize.c           window.c
+cmd-display-panes.c    cmd-resize-pane.c     compat.h                   mdoc2man.awk     screen.c           window-client.c
+cmd-find.c             cmd-resize-window.c   configure.ac               menu.c           screen-redraw.c    window-clock.c
+cmd-find-window.c      cmd-respawn-pane.c    control.c                  mode-tree.c      screen-write.c     window-copy.c
+cmd-if-shell.c         cmd-respawn-window.c  control-notify.c           names.c          server-acl.c       window-customize.c
+cmd-join-pane.c        cmd-rotate-window.c   COPYING                    notify.c         server.c           window-tree.c
+cmd-kill-pane.c        cmd-run-shell.c       environ.c                  options.c        server-client.c    xmalloc.c
+cmd-kill-server.c      cmd-save-buffer.c     example_tmux.conf          options-table.c  server-fn.c        xmalloc.h
+cmd-kill-session.c     cmd-select-layout.c   file.c                     osdep-aix.c      session.c
+cmd-kill-window.c      cmd-select-pane.c     format.c                   osdep-cygwin.c   sort.c
+
+
+README says:
+
+To get and build the latest from version control - note that this requires
+autoconf, automake and pkg-config:
+
+        $ git clone https://github.com/tmux/tmux.git
+        $ cd tmux
+        $ sh autogen.sh
+        $ ./configure && make
+        $ sudo make install
+
+Tried:
+
+bob@ubuntu-host tmux🔒 on  master ✖ sudo sh autogen.sh
+configure.ac:45: installing 'etc/compile'
+configure.ac:10: installing 'etc/config.guess'
+configure.ac:10: installing 'etc/config.sub'
+configure.ac:8: installing 'etc/install-sh'
+configure.ac:8: installing 'etc/missing'
+Makefile.am: installing 'etc/depcomp'
+configure.ac: installing 'etc/ylwrap'
+
+Otherwise will not run next command:
+sudo chown -R bob:bob .
+
+Now run:
+./configure && make
+
+Now:
+sudo make install
 
 
 
