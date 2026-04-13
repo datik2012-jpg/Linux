@@ -131,7 +131,162 @@ and to check what the job contains:
 
 >atrm 1 - will remove the job 
 
+/////////////////////LAB //////////
 
+As per the cron given below:
+
+0 3 15 * * /usr/bin/touch test_passed
+
+Answer: On teh 15th of each month at 3 am
+
+
+We're logged in as the user called alex. How do we see the crontab for theroot user?
+
+sudo crontab -l
+
+Which file can we analyze to check if anacron jobs have run successfully?
+
+ls /var/log/cron
+
+
+How can we force anacron to rerun all jobs, regardless of when they were last executed?
+
+
+sudo anacron -n -f
+
+
+What is the command to see the jobs that are scheduled to run in at utility?
+
+Using the correct command, identify the currently scheduled jobs under user bob and save the command output in the /home/bob/at_jobs.txt file.
+
+bob@ubuntu-host ~ ✖ at -l
+1       Sun Aug 20 15:30:00 2034 a bob
+
+bob@ubuntu-host ~ ✖ at -l > /home/bob/at_jobs.txt
+
+
+Remove all at jobs that exist for the user bob.
+
+Open >man at - and checl there the option:
+
+bob@ubuntu-host ~ ✖ at -l
+1       Sun Aug 20 15:30:00 2034 a bob
+
+bob@ubuntu-host ~ ➜  atrm 1
+
+
+Question:
+Add this command to the crontab of root:
+
+/usr/bin/touch test_passed
+
+Make it run every day at 21:30
+
+Try to locate in the  /etc/crontab (cause as well cron job can be located at : /var/spool/cron/crontabs/root or /var/spool/cron/crontabs/bob
+
+Put in root direcotory for cron jobs:
+bob@ubuntu-host ~ ✦5 ✖ sudo crontab -e
+
+bob@ubuntu-host ~ ✦5 ➜  sudo crontab -l
+# Edit this file to introduce tasks to be run by cron.
+# 
+# Each task to run has to be defined through a single line
+# indicating with different fields when the task will be run
+# and what command to run for the task
+# 
+# To define the time you can provide concrete values for
+# minute (m), hour (h), day of month (dom), month (mon),
+# and day of week (dow) or use '*' in these fields (for 'any').
+# 
+# Notice that tasks will be started based on the cron's system
+# daemon's notion of time and timezones.
+# 
+# Output of the crontab jobs (including errors) is sent through
+# email to the user the crontab file belongs to (unless redirected).asd
+30 21 * * * /usr/bin/touch test_passed
+
+
+Add an anacron job with the following specifications:
+
+
+A. It should run once every 10 days.
+
+B. It should have 5 minutes of delay.
+
+C. The job id should be db_cleanup.
+
+D. The command to run is /usr/bin/touch /root/anacron_created_this.`
+
+
+>sudo vim /etc/anacrontab
+
+Add:
+
+10      5       db_cleanup /usr/bin/touch /root/anacron_created_this
+
+check: force-run it:
+
+sudo anacron -fn
+
+bob@ubuntu-host ~ ✦5 ✖ ls -l /etc/cron.daily | grep anacron
+-rwxr-xr-x 1 root root  311 Oct  9  2021 0anacron
+
+
+Using the root user, schedule the below command to run at 15:30 August 20 2054 by using at utility:
+
+Note: Ctrl+D for saving at job 
+
+bob@ubuntu-host ~ ✦6 ✖ sudo at '15:30 August 20 2054'
+warning: commands will be executed using /bin/sh
+at Thu Aug 20 15:30:00 2054
+at> /usr/bin/touch atscheduler
+at> <EOT>
+job 4 at Thu Aug 20 15:30:00 2054
+
+Using crontab utility, add a cron for user root to run the below command:
+
+/usr/bin/touch monthly
+
+Make it run at 12:00AM on the 1st of every month.
+
+>sudo crontab -e 
+
+Add this:
+0 0 1 * * /usr/bin/touch /root/monthly
+
+
+Using crontab utility, add a cron for user root to run the below command:
+
+/usr/bin/touch weekly
+
+Make it run at 11:00AM on every Sunday.
+
+>sudo crontab -e
+
+Add:
+
+0 11 * * 0 /usr/bin/touch weekly
+
+
+Add a cron for the user bob to execute the sudo /usr/bin/systemctl restart nginx command on Sundays every week at 6am and 11pm.
+
+>crontab -e  - for user BOB
+
+0 6 * * 0 sudo /usr/bin/systemctl restart nginx
+0 23 * * 0 sudo /usr/bin/systemctl restart nginx
+
+OR in one line:
+
+0 6,23 * * 0 sudo /usr/bin/systemctl restart nginx
+
+
+
+
+
+
+			 
+
+			 
 
 
 
