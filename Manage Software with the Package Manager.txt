@@ -102,6 +102,7 @@ Now we can save the file and run apt command:
 >sudo apt update - which NOW will download the DOCKER !!! cause it has that config in the apt configiration!!
 
 //////////////////////PPA ////////////
+A Launchpad-hosted repository for Ubuntu .deb packages only.
 personal package archive - when we want to use not vandors packages and not official.Or create our own repositories !!
 
 A PPA is a custom APT repository hosted on Launchpad (a Canonical service).
