@@ -1,0 +1,236 @@
+//////////Manage Software with the Package Manager /////
+
+Ubuntu use : apt (Advanced Package Tool)
+
+>sudo apt update - update inforamtion in the machine (nice to run updates before)
+
+>sudo apt update && sudo apt install nginx
+
+To check nginx files package:
+
+>dpkg --listfiles nginx
+
+To list all nginx file in the nginx core package
+
+>dpkg --listfiles nginx-common 
+
+
+
+>dpkg --search /usr/sbin/nginx
+
+Show exatly the package (package info and what includes and what it does):
+
+>apt show libnginx-mod-stream
+
+Sometimes we dont know and want to search the package:
+
+>apt search ngnix  - but will show evrything in the system related to nginx
+
+
+>apt search --names-only ngingx   - to show only the packages with NAME nginx
+
+To search only the nginx module images:
+
+>apt search nginx module image
+
+
+
+Remove the package when it's no more needed:
+
+>sudo apt remove nginx
+
+
+Remove as well all dependencies nginx and nginx:
+
+>sudo apt autoremove nginx
+
+
+
+///////////////////Configure the Repositories of Package Manager /////////
+
+>suod vim /etc/apt/sources.list - to look this file in old Ubuntu version
+
+in Ubuntu new versions(22)
+
+>sudo vim /etc/apt/sources.list.d/ubuntu.sources
+
+Why this is needed
+When you add a software repository (like Docker’s) to Ubuntu, the system needs to verify that packages from that repository are authentic.
+
+Ubuntu does this using GPG keys.
+
+The GPG key is used to:
+Verify that Docker packages are signed by Docker
+
+Prevent tampering or fake packages
+
+Allow apt to trust the repository
+
+
+>curl "https://download.docker.com/linux/ubuntu.gpg -o docker.key
+
+>ls -la - to see the key existing
+
+>gpg --dearmor docker.key
+>ls - and you will see docker.key.gpg been created
+
+Now need to move the ly to apt package manager -where keeped third party keys:
+
+>mv docker.key.gpg /etc/apt/keyrings
+
+Need to add docker repo to the apt configuration
+
+>ls /etc/apt - there we can create new source file for docker (source.list - is default apt file for repos)
+but we want creale our new file with repo (keep it organized)
+
+>sudo vim /etc/apt/source.list.d/docker.list
+
+add there:
+deb https://download.docker.com/linux/ubuntu noble stable
+
+Means: 
+Means:
+
+“Ubuntu, please download stable Docker packages for Ubuntu 24.04 (noble) from the official Docker repository.”
+
+And ti use with a key which we have exctracted before:
+
+deb [signed-by=/ect/apt/keyrings/docker.key.gpg] https://download.docker.com/linux/ubuntu noble stable
+
+Now we can save the file and run apt command:
+
+>sudo apt update - which NOW will download the DOCKER !!! cause it has that config in the apt configiration!!
+
+//////////////////////PPA ////////////
+personal package archive - when we want to use not vandors packages and not official.Or create our own repositories !!
+
+A PPA is a custom APT repository hosted on Launchpad (a Canonical service).
+It allows developers to distribute:
+
+newer versions of software
+
+experimental builds
+
+software not included in Ubuntu
+
+patched or customized versions 
+
+
+>sudo add-apt-repository ppa:dani/mylatestapp
+example> sudo add-apt-repository dani:graphic-drivers/ppa -  so it will create own repository belalf user and add to the apt file, and later others users can download it with apt manager
+
+
+To list all ppa we have in the system:
+>add-apt-repository --list
+
+And remove ppa:
+>sudo add-apt-repository --remove ppa:graphic-drivers/ppa
+
+
+
+
+
+
+The official Docker repository gives you:
+✔ The latest Docker Engine
+✔ The latest Docker CLI
+✔ The latest containerd
+✔ Security patches immediately
+✔ Official support from Docker
+✔ Correct dependencies and configuration
+
+
+
+///////////////Install Software by Compliling Source Code ////
+
+Sometimes we need to get a code and compile it and run:
+
+Install git:
+
+>sudo apt install git
+
+Clone repo:
+
+>git clone https:/github/newproject/newp.git
+
+Switch to the project directory:
+
+>cd newp 
+
+Now better to check README file for Instructions
+
+>less README
+
+if it says to run some >sudo apt ...... - do this
+
+When completed to run all what needed from README file
+
+>ls
+You my see green file in the folder which mostly the entry point to the programm:
+(if the green htop.sh)
+>./htop.sh -  will generate a configuration script
+
+>ls - and you will see green configuration file existing
+
+>./configure --help  - will show us configuration options do we need
+
+for default configuration just run without any argument
+
+>./configure 
+
+Use Make utility to complile and build a final application:
+
+>make  - an click twice TAB TAB to see all the options .Like clean and etc
+
+
+If you just want to compile and build ,you can run just "make"
+
+>make
+
+Now if we check the dir folder content:
+
+>ls - we need to see EXECUTABLE file  (in our case newpapp  - will be in green)
+
+We can run it simple:
+
+>./newapp
+
+and application start to run (we will see something interesting)
+
+Q - iw you want to quit
+
+So to run next time our all need mention a full path like:
+
+>/home/dani/newp/myapp
+
+We can Install the app in the different location:
+
+>sudo make install - and the file will be moving to the /usr/local/bin directory .Note cause any user shell configured to look in the /usr/local/bin direcotory !!!
+
+
+Back to my own directory:
+
+>cd ~
+
+And now i can run the app from my own directory without the path:
+
+>newapp  - will run the app !!!!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
