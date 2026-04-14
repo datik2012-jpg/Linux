@@ -1,0 +1,660 @@
+/////////////Verify Integrity and Availability of Sesources and Processes ////////
+
+df - utility to check the disk (will show in killobaits)
+
+df -h -  to display disk usage and size in MB and GB
+
+See the Mounted On column
+
+/ - is the root file system where Linux Installed
+/boot - where boot small  file system where boot files are installed
+
+/dev/mapper
+/dev/vda2
+
+>du  - disk usage by directories (du -h - human readable format)
+
+///////////////////RAM ///////////
+
+>free -h - to see RAN usage in MB and GB
+
+>uptime - to see how CPU cores been used by programs running on our server.See load everage: 0.05 0.05 0.01 .Where first 0.05 - says load average in lat minute, second 0.05 in last 5 minutes,third last 15 minutes
+2.0 - where we see this (1.0 - is one core used 100% of memmory, 2.0 - two cores 100% of memmory and etc..
+
+
+
+CPU usage:
+
+>lscpu
+
+To see another hardware on the server:
+
+>lspci   - (USB,Ethernet,IDE interface,Bridge and etc...)
+
+/////////////// ///////////
+
+Note: to check file systems for erros ,one ,ust UNMOUNT it:
+
+RedHat - xfs file systems (default)
+Ubuntu - ext4 file systems (default)
+
+>sudo xfs_repaer -v /dev/vdb1    - where v means verbose
+
+To check and repair file system:
+>sudo fsck_ext4 -v -f -p /dev/vdb2  (v - verbose, f - force even if file system unhealty , remember -p option is PREEN MODE -which fix simple problems automaticaly without asking any questions.In case sirius erros - YES no question can be asked)
+
+Remember -p -option to avoid a lot of YES NO question - everything will be fixed automatically 
+
+
+
+>systemctl list-dependencies - which will show tree system units that are ACTIVE and INACTIVE.Clear circle mean not active service(unit)
+
+>sudo kill atd - terminate atd service
+
+To investigate unit or service which is INACTIVE:
+
+>systemmctl status atd.se -  will show the satus and where it was DEACTIVATED
+
+depend on the message decide what to do
+in my case to start the service
+>sudo systemctl start atd.service
+
+
+To see the logs for the service
+>journalctl -u atd.service - to see the logs for the service
+
+
+Identity a service :
+
+systemctl list-units --type=service --state=running
+
+or Search for a service by keyword:
+
+systemctl list-units --type=service | grep <keyword>
+
+Find processes related to a service:
+
+ps aux | grep <name> 
+
+Check the Service Status
+
+systemctl status <service-name>
+
+Log Analyzing View logs for a specific service
+
+journalctl -u <service-name>
+
+View only recent logs
+
+journalctl -u <service-name> -n 50
+
+Follow logs in real time
+
+journalctl -u <service-name> -f
+
+Look for errors
+
+journalctl -u <service-name> | grep -i error
+
+Identify the Root Cause:
+
+A. Configuration Errors
+Missing config files
+
+Wrong permissions
+
+Syntax errors
+
+sudo cat /etc/<service>/<config-file>
+sudo ls -l /etc/<service>/
+
+B. Port Conflicts
+
+sudo lsof -i -P -n | grep LISTEN
+
+C. Dependency Failures
+
+systemctl list-dependencies <service-name>
+
+D. Resource Issues
+Out of memory
+
+Disk full
+
+CPU overload
+
+df -h
+free -h
+top
+
+E. SELinux / AppArmor Blocking
+
+sudo ausearch -m avc
+sudo dmesg | grep DENIED
+
+
+
+Check system-wide failures:
+
+systemctl --failed
+
+Detect Which Process Is Failing Right Now
+
+A. Use top or htop
+
+
+B. Check for rapidly restarting services
+bash
+
+systemctl --failed
+systemctl list-units --type=service
+
+C. Watch the system log live
+
+journalctl -f
+
+If You Only Know the Port or Behavior
+A. If the program listens on a port
+
+sudo lsof -i -P -n | grep LISTEN
+
+If it writes files
+
+sudo lsof | grep <filename>
+
+C. If it uses a specific directory
+
+sudo lsof +D /path/to/directory
+
+Once You Identify the Process, Find the Service
+If you found a PID:
+
+ps -p <PID> -o comm=
+systemctl status <process-name>
+
+Analyze the Root Cause
+
+journalctl -u <service>
+
+//////////////////////////////LAB //////////////
+
+Identify what % space of / partition is in use on our system. Save the value in the /home/bob/used file.
+
+
+For example, if the used space is 10%, then the file content should be 10%.
+
+bob@caleston-lp10 ~ ➜  df -h
+Filesystem      Size  Used Avail Use% Mounted on
+tmpfs           291M  4.6M  286M   2% /run
+/dev/vda1       9.6G  1.6G  8.0G  17% /
+tmpfs           1.5G     0  1.5G   0% /dev/shm
+tmpfs           5.0M     0  5.0M   0% /run/lock
+tmpfs           1.5G     0  1.5G   0% /run/qemu
+/dev/vda15      105M  6.1M   99M   6% /boot/efi
+/dev/vdb        1.0M  1.0M     0 100% /mnt/app-config
+tmpfs           291M     0  291M   0% /run/user/1002
+
+bob@caleston-lp10 ~ ➜  df -h | sed -n 2p
+tmpfs           291M  4.6M  286M   2% /run
+
+bob@caleston-lp10 ~ ➜  df -h | sed -n 3p
+/dev/vda1       9.6G  1.6G  8.0G  17% /
+
+bob@caleston-lp10 ~ ➜  df -h | sed -n 3p | awk '{print $5}'
+17%
+
+bob@caleston-lp10 ~ ➜  df -h | sed -n 3p | awk '{print $5}' > /home/bob/used
+
+
+
+Identify what % space of / partition is in use on our system. Save the value in the /home/bob/used file.
+
+
+For example, if the used space is 10%, then the file content should be 10%.
+
+
+
+bob@caleston-lp10 ~ ✖ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+tmpfs           291M  4.6M  286M   2% /run
+/dev/vda1       9.6G  1.6G  8.0G  17% /
+tmpfs           1.5G     0  1.5G   0% /dev/shm
+tmpfs           5.0M     0  5.0M   0% /run/lock
+tmpfs           1.5G     0  1.5G   0% /run/qemu
+/dev/vda15      105M  6.1M   99M   6% /boot/efi
+/dev/vdb        1.0M  1.0M     0 100% /mnt/app-config
+tmpfs           291M     0  291M   0% /run/user/1002
+
+bob@caleston-lp10 ~ ➜  df -h | egrep "/dev/vda1 "
+/dev/vda1       9.6G  1.6G  8.0G  17% /
+
+Need to exctact only column 5:
+
+bob@caleston-lp10 ~ ➜  df -h | egrep "/dev/vda1 " | awk '{print $5}'
+17%
+
+Write to file:
+
+bob@caleston-lp10 ~ ➜  df -h | egrep "/dev/vda1 " | awk '{print $5}' > /home/bob/used
+
+
+Figure out how much storage space the /bin/ directory is using and save the value in the /home/bob/bin file.
+
+
+Try to find it:
+
+bob@caleston-lp10 ~ ➜  df -h
+Filesystem      Size  Used Avail Use% Mounted on
+tmpfs           291M  8.2M  283M   3% /run
+/dev/vda1       9.6G  1.6G  8.0G  17% /
+tmpfs           1.5G     0  1.5G   0% /dev/shm
+tmpfs           5.0M     0  5.0M   0% /run/lock
+tmpfs           1.5G     0  1.5G   0% /run/qemu
+/dev/vda15      105M  6.1M   99M   6% /boot/efi
+/dev/vdb        1.0M  1.0M     0 100% /mnt/app-config
+tmpfs           291M     0  291M   0% /run/user/1002
+
+du -h /bin/
+246M    /bin/
+
+
+du -h /bin/ | awk '{print $1}' > /home/bob/bin
+
+
+
+Use the correct command to check out the memory on this system (in megabytes). In /home/bob/memory file, save the total amount of RAM that this system has.
+
+For example, if you see 512 in the command's output, the file contents should be 512
+
+
+RAM Total:
+
+bob@caleston-lp10 ~ ➜  free -h 
+               total        used        free      shared  buff/cache   available
+Mem:           2.8Gi       251Mi       2.3Gi       8.0Mi       294Mi       2.4Gi
+Swap:             0B          0B          0B
+
+bob@caleston-lp10 ~ ✖ free -h | awk '{print $2}' | sed -n 2p
+2.8Gi
+
+Write to file:
+
+bob@caleston-lp10 ~ ➜  free -h | awk '{print $2}' | sed -n 2p | sed 's/[^0-9.]//g'
+2.8
+
+bob@caleston-lp10 ~ ➜  free -h | awk '{print $2}' | sed -n 2p | sed 's/[^0-9.]//g' > /home/bob/memory
+
+or try:
+
+bob@caleston-lp10 ~ ✖ free -h --mega
+               total        used        free      shared  buff/cache   available
+Mem:            2.9G        242M        2.4G        8.0M        300M        2.4G
+Swap:             0B          0B          0B
+
+bob@caleston-lp10 ~ ➜  free -h --mega | awk '{print $2}' | sed -n 2p | sed 's/[^0-9.]//g' > /home/bob/memory
+
+
+Figure out how much storage space the /bin/ directory is using and save the value in the /home/bob/bin file.
+
+bob@caleston-lp10 ~ ➜  du -h /bin/
+246M    /bin/
+
+bob@caleston-lp10 ~ ➜  ^C
+
+bob@caleston-lp10 ~ ✖ du -h /bin/ | awk '{print $1}'
+246M
+
+bob@caleston-lp10 ~ ➜  du -h /bin/ | awk '{print $1}' > /home/bob/bin
+
+
+
+Use the correct command to check out the memory on this system (in megabytes). In /home/bob/memory file, save the total amount of RAM that this system has.
+
+For example, if you see 512 in the command's output, the file contents should be
+
+bob@caleston-lp10 ~ ✖ free -m
+               total        used        free      shared  buff/cache   available
+Mem:            2903         254        2407           8         242        2419
+Swap:              0           0           0
+
+
+bob@caleston-lp10 ~ ✖ free -m | sed -n 2p
+Mem:            2903         254        2406           8         243        2419
+
+bob@caleston-lp10 ~ ➜  free -m | sed -n 2p | awk '{print $2}'
+2903
+
+free -m | sed -n 2p | awk '{print $2}' > /home/bob/memory
+
+OR the same :
+
+free -m | awk 'NR==2 {print $2}' > /home/bob/memory
+
+
+
+Use the correct command to check out how long this system has been up. In the /home/bob/up file, save the time value in hours, minutes, or days (whichever is applicable).
+
+For example, if you see 1:07 in the command's output, the file content should be 1.
+Similarly, if you see something like 51 min in the command's output, the file content should be 51min (without any space).
+
+This is corect:
+
+bob@caleston-lp10 ~ ✖ uptime 
+ 15:03:10 up 33 min,  1 user,  load average: 0.00, 0.00, 0.00
+ 
+bob@caleston-lp10 ~ ➜  uptime | awk '{print $3$4}'
+35min,
+
+bob@caleston-lp10 ~ ✖ uptime | awk '{print $3$4}' > /home/bob/up
+
+//////////////////////////////////////
+
+That i just played:
+
+bob@caleston-lp10 ~ ✖ uptime
+ 14:55:22 up 25 min,  1 user,  load average: 0.00, 0.01, 0.00
+ 
+ bob@caleston-lp10 ~ ✖ uptime | awk '{print $1}'
+14:56:40
+
+bob@caleston-lp10 ~ ➜  uptime | awk '{print $1}' > /home/bob/up
+
+Need without seconds:
+
+bob@caleston-lp10 ~ ➜  uptime | awk -F: '{print $1 ":" $2}'
+ 15:00
+
+bob@caleston-lp10 ~ ➜  uptime | awk -F: '{print $1 ":" $2}'
+
+
+Use the correct command to identify the CPU core(s) per socket on this system. Save its value in the /home/bob/cpu file.
+
+
+bob@caleston-lp10 ~ ✖ lscpu 
+Architecture:                x86_64
+  CPU op-mode(s):            32-bit, 64-bit
+  Address sizes:             46 bits physical, 48 bits virtual
+  Byte Order:                Little Endian
+CPU(s):                      2
+  On-line CPU(s) list:       0,1
+Vendor ID:                   GenuineIntel
+  Model name:                Intel Xeon Processor (Cascadelake)
+    CPU family:              6
+    Model:                   85
+    Thread(s) per core:      1
+    Core(s) per socket:      1
+    Socket(s):               2
+    Stepping:                6
+    BogoMIPS:                5599.99
+	
+	
+bob@caleston-lp10 ~ ➜  lscpu | grep "Core(s)" | awk '{print $4}'
+1
+
+bob@caleston-lp10 ~ ✖ lscpu | grep "Core(s)" | awk '{print $4}' > /home/bob/cpu
+
+
+On /dev/vdd, we have an XFS filesystem.Use the correct command to check this filesystem for errors and save the output in /home/bob/fscheck file.
+
+bob@caleston-lp10 ~ ➜  df /dev/vdd
+Filesystem     1K-blocks  Used Available Use% Mounted on
+udev             1465936     0   1465936   0% /dev
+
+
+If you want a single command that shows all disks + filesystem types + mountpoints, use:
+
+
+bob@caleston-lp10 ~ ✖ lsblk -f
+NAME    FSTYPE  FSVER            LABEL           UUID                                 FSAVAIL FSUSE% MOUNTPOINTS
+vda                                                                                                  
+├─vda1  ext4    1.0              cloudimg-rootfs dd6aa66d-9a85-4598-8704-b479fe819668      8G    16% /
+├─vda14                                                                                              
+└─vda15 vfat    FAT32            UEFI            9E7D-DB05                              98.3M     6% /boot/efi
+vdb     iso9660 Joliet Extension cfgdata         2026-04-14-14-29-31-00                     0   100% /mnt/app-config
+vdc     iso9660 Joliet Extension cidata          2026-04-14-14-29-32-00                              
+vdd     xfs                                      478525e5-3804-4ba8-9719-bd636366dfba                
+vde                                                                                                  
+vdf
+
+Step 1 — Identify the filesystem on /dev/vdd:
+
+bob@caleston-lp10 ~ ✖ lsblk -f /dev/vdd
+NAME FSTYPE FSVER LABEL UUID                                 FSAVAIL FSUSE% MOUNTPOINTS
+vdd  xfs                478525e5-3804-4ba8-9719-bd636366dfba 
+
+
+You will see something like: FSTYPE xfs
+
+Step 2 — Use the correct repair tool
+If the filesystem is XFS
+
+ob@caleston-lp10 ~ ➜  sudo xfs_repair -v /dev/vdd > /home/bob/fscheck
+Phase 1 - find and verify superblock...
+        - block cache size set to 136240 entries
+Phase 2 - using internal log
+        - zero log...
+zero_log: head block 2 tail block 2
+        - scan filesystem freespace and inode maps...
+        - found root inode chunk
+Phase 3 - for each AG...
+        - scan and clear agi unlinked lists...
+        - process known inodes and perform inode discovery...
+        - agno = 0
+        - agno = 1
+        - agno = 2
+        - agno = 3
+        - process newly discovered inodes...
+Phase 4 - check for duplicate blocks...
+        - setting up duplicate extent list...
+        - check for inodes claiming duplicate blocks...
+        - agno = 1
+        - agno = 2
+        - agno = 3
+        - agno = 0
+Phase 5 - rebuild AG headers and trees...
+        - agno = 0
+        - agno = 1
+        - agno = 2
+        - agno = 3
+        - reset superblock...
+Phase 6 - check inode connectivity...
+        - resetting contents of realtime bitmap and summary inodes
+        - traversing filesystem ...
+        - agno = 0
+        - agno = 1
+        - agno = 2
+        - agno = 3
+        - traversal finished ...
+        - moving disconnected inodes to lost+found ...
+Phase 7 - verify and correct link counts...
+
+        XFS_REPAIR Summary    Tue Apr 14 15:30:22 2026
+
+Phase           Start           End             Duration
+Phase 1:        04/14 15:30:22  04/14 15:30:22
+Phase 2:        04/14 15:30:22  04/14 15:30:22
+Phase 3:        04/14 15:30:22  04/14 15:30:22
+Phase 4:        04/14 15:30:22  04/14 15:30:22
+Phase 5:        04/14 15:30:22  04/14 15:30:22
+Phase 6:        04/14 15:30:22  04/14 15:30:22
+Phase 7:        04/14 15:30:22  04/14 15:30:22
+
+Total run time: 
+done
+
+
+Better: sudo xfs_repair -n /dev/vdd > /home/bob/fscheck 2>&1
+ 
+
+
+
+
+
+sudo xfs_repaer -v /dev/vdb1    - where v means verbose	
+
+sudo xfs_repair -n /dev/vdd - Optional: check filesystem before repairing.sudo xfs_repair -n /dev/vdd
+
+
+
+>lscpu 
+
+bob@caleston-lp10 ~ ✖ lscpu
+Architecture:                x86_64
+  CPU op-mode(s):            32-bit, 64-bit
+  Address sizes:             46 bits physical, 48 bits virtual
+  Byte Order:                Little Endian
+CPU(s):                      2
+  On-line CPU(s) list:       0,1
+Vendor ID:                   GenuineIntel
+  Model name:                Intel Xeon Processor (Cascadelake)
+    CPU family:              6
+    Model:                   85
+    Thread(s) per core:      1
+    Core(s) per socket:      1
+    Socket(s):               2
+    Stepping:                6
+    BogoMIPS:                5599.99
+    Flags:                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss sy
+                             scall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology cpuid tsc_known_freq pni pclmulqdq vmx 
+                             ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hype
+                             rvisor lahf_lm abm 3dnowprefetch cpuid_fault invpcid_single ssbd ibrs ibpb stibp ibrs_enhanced tpr_shad
+                             ow vnmi flexpriority ept vpid ept_ad fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm avx51
+                             2f avx512dq rdseed adx smap clflushopt clwb avx512cd avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves a
+                             rat umip avx512_vnni md_clear arch_capabilities
+Virtualization features:     
+  Virtualization:            VT-x
+  Hypervisor vendor:         KVM
+  Virtualization type:       full
+Caches (sum of all):         
+  L1d:                       64 KiB (2 instances)
+  L1i:                       64 KiB (2 instances)
+  L2:                        8 MiB (2 instances)
+  L3:                        32 MiB (2 instances)
+NUMA:                        
+  NUMA node(s):              1
+  NUMA node0 CPU(s):         0,1
+Vulnerabilities:             
+  Gather data sampling:      Not affected
+  Indirect target selection: Mitigation; Aligned branch/return thunks
+  Itlb multihit:             Not affected
+  L1tf:                      Not affected
+  Mds:                       Not affected
+  Meltdown:                  Not affected
+  Mmio stale data:           Vulnerable: Clear CPU buffers attempted, no microcode; SMT Host state unknown
+  Reg file data sampling:    Not affected
+  Retbleed:                  Mitigation; Enhanced IBRS
+  Spec rstack overflow:      Not affected
+  Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl and seccomp
+  Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+  Spectre v2:                Mitigation; Enhanced / Automatic IBRS; IBPB conditional; PBRSB-eIBRS SW sequence; BHI SW loop, KVM SW l
+                             oop
+  Srbds:                     Not affected
+  Tsa:                       Not affected
+  Tsx async abort:           Vulnerable: Clear CPU buffers attempted, no microcode; SMT Host state unknown
+  Vmscape:                   Not affected
+  
+  
+  /////////////Explain ///////
+  
+  To see a disks:
+  
+  
+  This tells us:
+
+/dev/vdd is a disk
+
+It contains an XFS filesystem
+
+It is not mounted (no mountpoint shown)
+
+That’s why the correct tool is xfs_repair.
+  
+  bob@caleston-lp10 ~ ➜  lsblk -f
+NAME    FSTYPE  FSVER            LABEL           UUID                                 FSAVAIL FSUSE% MOUNTPOINTS
+vda                                                                                                  
+├─vda1  ext4    1.0              cloudimg-rootfs dd6aa66d-9a85-4598-8704-b479fe819668      8G    16% /
+├─vda14                                                                                              
+└─vda15 vfat    FAT32            UEFI            9E7D-DB05                              98.3M     6% /boot/efi
+vdb     iso9660 Joliet Extension cfgdata         2026-04-14-14-29-31-00                     0   100% /mnt/app-config
+vdc     iso9660 Joliet Extension cidata          2026-04-14-14-29-32-00                              
+vdd     xfs                                      478525e5-3804-4ba8-9719-bd636366dfba                
+vde                                                                                                  
+vdf 
+
+As you can see two disks:
+vde and vdf are empty disks at the moment.No FSTYPE,NO UUID , no MOUNTPOIN - so no partition ,no file system ,no mounted ,
+
+The easier way to use the disk without any partition and create Filesystem:
+Run this > sudo mkfs.ext4 /dev/vde 
+and now if we check again the disks:
+>lsblk -f
+we will see the disk get ID:
+vde   ext4   478525e5-3804-4ba8-9719-bd636366dfas
+
+Now need mount a disk to some folder (need create a folder first> sudo mkdir -p /mnt/data):
+
+and only now we can nount a disk to the folder:
+>sudo mount /dev/vde /mnt/data
+
+so now /mnt/data will be our new DISK
+
+Check:
+>df -h | grep vde
+
+For make the disk be automatic connected during the BOOT system:
+
+check the disk ID:
+>blkid /dev/vde
+Output: /dev/vde: UUID="abcd-1234" TYPE="ext4"
+
+add to /etc/fstab - here Linux keep the list of disks which should be automatic mounetd during a boot:
+example:UUID=abcd-1234   /mnt/data   ext4   defaults   0   2
+
+Validation if we are good (if no errors):
+
+sudo umount /mnt/data
+sudo mount -a
+
+How to check what inside the disk?
+
+Create directory for mounting:
+sudo mkdir -p /mnt/vdd
+
+Mount a disk to directory:
+sudo mount /dev/vdd /mnt/vdd
+
+Check what we have inside the directory:
+ls -l /mnt/vdd
+
+To check the Size and Used % of the disk - disk should be mounted!!!
+> df -h    - will show:
+
+Filesystem   Size  Used  Avail  Use%  Mounted on
+/dev/vda1     50G   8G    42G    16%  /
+/dev/vdd       2G  ...    ...    ...  /mnt/vdd
+
+For specific disk:
+df -h /mnt/vdd
+
+To check the size of the folders as well:
+sudo du -sh /mnt/vdd/*
+
+To see information about the DISK itself:
+lsblk -f
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
