@@ -1,0 +1,170 @@
+////////////Kerner Runtime Parameters ///////
+Kernel is the core for Linyx operation system.It connect hardware to software .Binding applications with hardware and resources.
+
+Kernerl - monitors memory and usage
+          process managing - which CPU to allocate to which process
+		  drivers
+		  file systems - read and write
+		  system calls and security
+
+Persistent parameters
+Non-presistent parameters
+
+
+Kernel is handling low level stuff- allocating memory,network handling,traffic 
+
+
+To see kernel runtime parameters in use currently:
+
+>sudo sysctl -a 
+
+Output:
+net.- means NETWORK related parameters
+vm. - virtual memory
+fs. - file system parameters
+
+parameter = 0 - means FALSE
+parameter = 1 - means TRUE
+
+Set the value to the system parameter:
+
+> sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1 - set TRUE to the ipv6 parameter .(not persistent)
+
+BUT REBOOT will reset this parameter to 0 !!!!
+
+Just to check the paremeter value:
+
+>sude sysctl net.ipv6.conf.default.disable_ipv6 
+
+How to make a sys parmeter persisten(when reboot will not reset it anymore):
+
+Need to add the file (.conf) to the /etc/sysctl.d/ directory
+
+
+>man sysctl.d - can show the path and remind US where it sists
+
+>sysctl -a | grep "vm" -  to show all system  parameters filter by vm only(virtual memory)
+outut: vm.swappiness=60  - to move from memory to storage device like SSD for free a RAM memory
+values can be( 0 to 100) - lower value says to avoid swap andwhen it neccessary , higher value - decide to swap later even if you run slow in memory
+
+Note:
+Today
+vm.swappiness=60
+vm.swappiness=60 means your Linux system is set to use swap at a moderately aggressive level — the default on most distributions. At this value, the kernel begins considering swapping when RAM usage passes roughly 40%, balancing between keeping data in RAM and freeing memory by moving inactive pages to swap.
+
+
+To change the sys parameters even reboot will not overwrite it need create the file(nky name) in the /etc/sysctl.d:
+Note:  but this file can be overwriten when the system BEEN UPGRADED.So nice to save sys parameters to the /etc/sysctl.conf instead.
+
+>sudo vim /etc/sysctl.d/swap-less.conf
+and save there:vm.swappiness=20
+
+Now even after linux boot TIS vm.swappiness PARMETER WILL BE SET TO 20   -  so it is like persistent
+
+But until a next boot it will be not chnaged,immediatly change it ,right now:
+
+>sudo sysctl -p /etc/sysctl.d/swap-less.conf  - will do the change right now
+
+Another place to add system paramters are /etc/sysctl.conf (the file has more inforamtion about parameters and what they do):
+>sudo vim /etc/sysctl.conf 
+
+////////////List and Identify SELinux File and Process Contexts/////////
+
+Advanced access restrictions SELinux - cause reqular access Linux are not enought in moder cyber reality
+
+SELinux is enabled BY DEFAULT in the Red Hat OS.But not enabled by default in Ubuntu
+
+
+SELinux allow for very fine-grained control of what actions should be allowed or denied
+
+>ls -l show as which permissions are enabled or disabled
+on a file or directory 
+
+>ls -Z - will show us SELinux context called LABEL: unconfigured_u:object_r:user_home_t:s0
+                                                        user          role     type      level
+														
+Eevery user which logined to Linux been mapped (if SELinux configured) to SELinux user ,as part of SELinux policy configuration
+After the user identified - decision to see if it can assume a role, each user can assume predefined roles
+dev user role should be able to run ane execute BUT should not enter roles like SYSADMIN_r
+Type - is type enforcement 
+Level - not been used in regular usage system ,only for comlex organizations that require multiple levels of security. For example 4 is top secret files.
+
+SELinux User   Roles
+
+developer_u     developer_r,docker_r
+guest_u         guest_r
+root            staff_r,sysamin_r,system_r,unconfirmed_r
+
+How to explore what SELinux context are appliaed to them:
+>ps axZ 
+
+Output> some lines in blue with ssh_t - for example ssh daemon. _t means this domain has a strict policies that define what this proces is allowed to do
+as well only sshd_exec_t SELinux type in their label can enter to this domain
+
+>ls -Z /usr/sbin/sshd
+output: sshd_exec_t - we can see this type and it's can access that ssh_t service
+
+>ps -axZ
+outputL everything with label unconfined_t is running unresricted ,SELinux allows to these service to do what they want
+
+To see the security context assigned to the our current user:
+>id -Z
+
+To see how our user mappedn to SELinux user:
+>sudo semanage login -l
+
+root        unconfined_u  - means root user mapped to SELinux user unconfined_u
+_default_   unconfined_u  - other users will be here (cause they are not defined yet and the default is this SELinux user)
+
+
+>sudo semanage user -l  - to see the roles that each user can assume on the system 
+
+To see if SELinux ENABLED or Not
+>getenforce  -   you may see Enforcing (enabled). Permissive - means allow everything.Disable - SELinux is not doing anything
+
+///////////////Create and Enforce MAC Using SELinux ////
+
+SELinux is default enabled in RedHat
+In ubuntu not,but has different module called AppArmor - enabled by default in Ubuntu
+
+
+Stop the AppArmor service:
+>sudo systemctl stop apparmor.service
+>sudo systemctl disable apparmor.service - disable the service
+
+to start with SELinux we need to install two packages:
+SELinux Basics
+SELinux AuditD
+
+>sudo apt install selinux-basics auditd
+
+Now we can check if SELinux status:
+>sestatus
+
+Before enabling need to set up few things:
+a)bootloader configured - to tell to Kernel to load the security module
+b)label  (check if we have label at the moment> ls -Z   - question marks appear instaed of proper security labels)
+
+
+
+
+
+
+
+
+output:ssh_t only 
+
+
+														
+
+
+
+
+
+
+
+
+
+
+
+
