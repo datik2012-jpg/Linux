@@ -45,7 +45,7 @@ Need to add the file (.conf) to the /etc/sysctl.d/ directory
 
 >sysctl -a | grep "vm" -  to show all system  parameters filter by vm only(virtual memory)
 outut: vm.swappiness=60  - to move from memory to storage device like SSD for free a RAM memory
-values can be( 0 to 100) - lower value says to avoid swap andwhen it neccessary , higher value - decide to swap later even if you run slow in memory
+values can be( 0 to 100) - lower value says to avoid swap and when it neccessary , higher value - decide to swap later even if you run slow in memory
 
 Note:
 Today
@@ -145,6 +145,330 @@ Before enabling need to set up few things:
 a)bootloader configured - to tell to Kernel to load the security module
 b)label  (check if we have label at the moment> ls -Z   - question marks appear instaed of proper security labels)
 
+>sudo selinux-activate  -will tell to kernel to boot the selinux during a boot time
+
+check boot load and the line should be there:
+>cat /etc/default/grub 
+find a line: GRUB_CMDLINE_LINUX=" security=selinux"
+
+/etc/default/grub is one of the core configuration files used by GRUB2, the default bootloader on most modern Linux distributions (Ubuntu, Debian, CentOS, RHEL, etc.).
+It controls how the system boots, what kernel parameters are used, and how the GRUB menu behaves.
+
+
+>ls -a /  - can show us hidden file (.autorelabel) -this file extracts linux to relabel secyrity process when we reboot
+
+
+>sudo reboot
+
+
+and after reboot all security labeling finished we can check and see different output (no ? anymore):
+
+>ls -Z / 
+
+
+>getenforce - permissive mode just observing mode (learning mode) recorded everything
+
+>sudo audit2why --all | less -    (DASH DASH) to show all logs for example ssh logs type /ssh
+
+
+
+>ps -eZ | grep sshd_t - show labels only filter by sshd_t
+
+>ls -Z /usr/sbin/sshd - to check how the file been labeleb
+
+
+
+So when you see the file label sshd_exec_t  so it's process will be labels with  name_t  (will add _t)
+
+>sudo audit2allow --all -M mymodule - to read the LOG and find in the log lines with kind(AVC denied) and create rules for all of them - DANGEROUS IN PRODUCTION TO ALLOW EVERYTHING
+where -M module - says create a module file mymodule.de(policy source) and copy it to mymodule.pp and prepera for run it
+
+
+We can check before what audit2allow suggests:
+sudo ausearch -m avc -ts recent | audit2allow
+and ONLY in case everything fine:
+sudo ausearch -m avc -ts recent | audit2allow -M mymodule 
+Install/LOAD(RUN or enable) the module to SELinux:
+sudo semodule -i mymodule.pp
+
+
+
+>sudo setenforce 1  - enforce the RULES 
+check if it enforced:
+>getenforce
+
+and then we need to test everything in the server to see if THINGS STILL WORKING as EXPECTED
+
+nice to check and if something not good REBOOT will clean this policy
+
+
+TO DO PERSISTENT in case our checks were fine need to modify a file:
+
+>sudo vim /etc/selinux/config
+and change to SELINUX=enforcing and now after reboot SELinux will be in ENFORCING mode
+
+
+Now back to our module.te file which been generated before:
+
+>less mymodule.te  -we can see the security policy which generated (per service)
+
+
+For example:
+
+>ps -eZ | grep ssh   - to find ssh daemon process label (sshd_t you can see tha domain)
+
+>ls -Z /var/log/auth.log - and in this file ssh daemin is loging (we can see there applied thid label :var_log_t)
+ 
+ 
+>grep var_log_t:file nynodule.te  - let's see what he had in our policy file for that when we search for var_log_t lines inside:
+allow sshd_t var_log_t:file {append create getattr ioctl write};  - which say allowing to sshd process under sshd_t domain to create and write and etc files with labeled var_log_t type
+allow systemd_journal_init_t var_log_t:file {getattr ioctl write};  - alowing for systemctl ....
+
+
+Lets see the label of the file again:
+
+>ls -Z /var/log/auth.log
+system_u:object_r:var_log_t:s0 /var/log/auth.log
+
+user label: system_u
+role label: object_r
+type label: var_log_t
+
+these three part can be finedevery file and every process into what SELINUX calls a security context
+
+«Это лог‑файл в /var/log, и к нему могут обращаться только процессы, которым разрешён доступ к логам».
+
+TOCHANGE THE CONTEXT :
+to change the user context:
+>sudo chcon -u unconfined_u /var/log/auth.log 
+
+to change role:
+>sudo chcon -r object_r /var/log/auth.log
+
+to change type:
+>sudo chcon -t user_home_t /var/log/auth.log
+
+To check the valid USER labels:
+>seinfo -u     
+
+Role labels:
+>seinfo -r     
+
+Type labels:
+>seinfo -t
+
+But to understand what it allows NEED TO LOOK DOCUMENTATION.
+
+Sometimes we can or need to copy all labels from ONE file to another:
+
+>sudo chcon --reference=/va/log/dmesg /var/log/auth.log 
+
+>ls -Z /var/log   - to see the lables for all files in this DIRECTORY
+
+
+
+WHAT WE SHOULD DO FOR NEW DIRECTORIES AND FILES ?
+
+>sudo mkdir /var/wwww
+>sudo touch /var/www/{1...10}  - will create 10 files
+>ls -Z /var/www - to look the labels for new created files
+
+
+we can fix the labels with:
+>sudo restorecon -R /var/www/  -recursevly to fix all labels (even if we didn't know before how to set - cause we just created these files).But this restore does not touch USERS and ROLES - just TYPE !!!
+
+To restore defaults USER and ROLE and TYPE labels:
+>suod restorecon -F -R /var/www/
+
+to change TYPE need to run these commands:
+
+>sudo semanage fcontent --add --type var_log_t /var/www/10 
+>sudo restorecon /var/www/10
+>ls -Z /va/www/
+
+
+will shows all rules for path and SELinux types
+
+>sudo semanage fcontext --list 
+
+and there for example:
+/var/www/upload(/.*)?  - which shows us how to use Regular Expressions to set a DEFAULT label for directory and all subdirectory:
+
+>sudo semanage fcontent --add --type nfs_t ".nfs/shares(/.*)?"
+>sudo mkdir -p /nfs/shares  - if direcotory is not exist
+>sudo restorecon -R /nfs/
+>ls -Z /nfs/
+
+
+>sudo semanage boolean -- list   -  to see the booleans
+
+To enable NFS using:
+>sudo setbool virt_use_nfs 1
+>getsebool virt_use_nfs
+
+
+>sudo semanage port --list - check which  port is allowed
+>sudo semanage port --add --type ssh_port_t --proto tcp 2222 - to allow port  
+>sudo semanage port --delete --type ssh_port_t --proto tcp 2222
+
+
+
+////////////////////LAB ///////////
+
+Find the SELinux labels of sshd process running on this system. Save its value in the /home/bob/sshd file.
+
+First need to find where sshd located ,so need to see all processes with >ls axZ:
+
+bob@caleston-lp10 ~ ✦ ✖ ps axZ | grep sshd
+system_u:system_r:sshd_t:s0-s0:c0.c1023 689 ?    Ss     0:00 sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+system_u:system_r:initrc_t:s0      1078 pts/2    T      0:00 man sshd
+system_u:system_r:initrc_t:s0      1141 pts/2    S+     0:00 grep --color=auto sshd
+
+Need to extract first line:
+bob@caleston-lp10 ~ ✦ ✖ ps axZ | grep "sshd_t" | head -n 1
+system_u:system_r:sshd_t:s0-s0:c0.c1023 689 ?    Ss     0:00 sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+
+bob@caleston-lp10 ~ ✦ ➜  ps axZ | grep "sshd_t" | head -n 1 > /home/bob/sshd
+
+
+
+Less related:
+check SELinux labels for sshd dolder or files:
+
+bob@caleston-lp10 ~ ✦ ✖ ls -Z /usr/sbin/sshd
+system_u:object_r:sshd_exec_t:s0 /usr/sbin/sshd
+
+
+Turn on kernel.modules_disabled kernel runtime parameter, so that loading new kernel modules will be disabled.
+
+>sudo sysctl -a | grep kernel.modules_disabled
+kernel.modules_disabled = 0
+
+Set the value to the system parameter:
+
+> sudo sysctl -w kernel.modules_disabled=1 - set 1 for FALSE to the ipv6 parameter .(not persistent)
+
+Check out the SELinux label for the file stored at /bin/sudo. Ignore the SELinux user and role here.
+What is the SELinux type used on this file? Save its value in /home/bob/selabel file.
+
+bob@caleston-lp10 ~ ✦ ✖ ls -Z /bin/sudo
+system_u:object_r:sudo_exec_t:s0 /bin/sudo
+
+Exctract only the type:
+bob@caleston-lp10 ~ ✦ ➜  ls -Z /bin/sudo | cut -d ':' -f 3
+sudo_exec_t
+
+ls -Z /bin/sudo | cut -d ':' -f 3 > /home/bob/selabel
+
+Use the sysctl command to make sure this kernel runtime parameter is actively enabling its settings:
+
+check the current value:
+sudo sysctl net.ipv6.conf.lo.seg6_enabled
+net.ipv6.conf.lo.seg6_enabled = 0
+
+Set new value:
+sudo sysctl -w net.ipv6.conf.lo.seg6_enabled=1
+
+
+Adjust the value of this kernel runtime parameter, vm.swappiness, to 10.
+
+After you set this to 10, also make the change persistent so that it will be auto-set to this value on the next reboot.
+
+bob@caleston-lp10 ~ ✦2 ✖ sudo sysctl -a | grep "vm.swappiness"
+vm.swappiness = 60
+
+I can set bu it WILL NOT PERSISTEMT and REBOOT WILL REMOVE IT:
+
+bob@caleston-lp10 ~ ✦2 ➜  sudo sysctl -w vm.swappiness=10
+vm.swappiness = 10
+
+
+Open a file and add there:
+sudo vim /etc/sysctl.conf
+
+vm.swappiness=10
+
+
+Change the SELinux context of /var/index.html file to httpd_sys_content_t
+
+Current context is:
+
+ls -Z /var/index.html
+unconfined_u:object_r:var_t:s0 /var/index.html
+
+Change to TYPE httpd_sys_content_t:
+
+sudo semanage fcontext -a -t httpd_sys_content_t "/var/index.html"
+
+bob@caleston-lp10 ~ ✦3 ✖ sudo semanage fcontext -a -t httpd_sys_content_t "/var/index.html"
+libsemanage.add_user: user sddm not in password file
+
+But as well need to run these command cause otherwise it will not be changed:
+
+>sudo restorecon /var/index.html
+
+Validation:
+ls -Z /var/index.html
+unconfined_u:object_r:httpd_sys_content_t:s0 /var/index.html
+
+
+Temporarily change the SELinux status to Permissive on this system.
+
+
+Current status is:
+> getenforce
+Enforcing
+
+
+bob@caleston-lp10 ~ ✦3 ➜  sudo setenforce 0
+
+bob@caleston-lp10 ~ ✦3 ➜  getenforce
+Permissive
+
+
+Identify the SELinux Roles for staff_u SELinux user and save the value(s) in /home/bob/serole file.
+
+bob@caleston-lp10 ~ ✦3 ➜  sudo semanage user -l
+
+                Labeling   MLS/       MLS/                          
+SELinux User    Prefix     MCS Level  MCS Range                      SELinux Roles
+
+root            sysadm     s0         s0-s0:c0.c1023                 staff_r sysadm_r system_r
+staff_u         staff      s0         s0-s0:c0.c1023                 staff_r sysadm_r
+sysadm_u        sysadm     s0         s0-s0:c0.c1023                 sysadm_r
+system_u        user       s0         s0-s0:c0.c1023                 system_r
+unconfined_u    unconfined s0         s0-s0:c0.c1023                 system_r unconfined_r
+user_u          user       s0         s0                             user_r
+xdm             user       s0         s0                             xdm_r
+
+bob@caleston-lp10 ~ ✦3 ✖ sudo semanage user -l | grep "staff_u"
+staff_u         staff      s0         s0-s0:c0.c1023                 staff_r sysadm_r
+
+bob@caleston-lp10 ~ ✦3 ➜  sudo semanage user -l | grep "staff_u" > /home/bob/serole
+
+
+The SELinux labels for the files in /var/log are wrong. Restore the correct (default) labels for every file and subdirectory in the /var/log directory. You only need to fix the SELinux type labels (user and role can be left as they are).
+
+check all labels:
+
+bob@caleston-lp10 ~ ✦3 ✖ ls -Z /var/log
+system_u:object_r:tmp_t:s0 auth.log               system_u:object_r:tmp_t:s0 dmesg      system_u:object_r:tmp_t:s0 private
+system_u:object_r:tmp_t:s0 btmp                   system_u:object_r:tmp_t:s0 kern.log   system_u:object_r:tmp_t:s0 syslog
+system_u:object_r:tmp_t:s0 cloud-init-output.log  system_u:object_r:tmp_t:s0 landscape  system_u:object_r:tmp_t:s0 wtmp
+system_u:object_r:tmp_t:s0 cloud-init.log         system_u:object_r:tmp_t:s0 lastlog
+
+Fix them in recursion:
+sudo restorecon -F -R /var/log
+
+Validation:
+
+bob@caleston-lp10 ~ ✦3 ✖ ls -Z /var/log
+system_u:object_r:var_log_t:s0 auth.log               system_u:object_r:var_log_t:s0 landscape
+system_u:object_r:faillog_t:s0 btmp                   system_u:object_r:lastlog_t:s0 lastlog
+system_u:object_r:var_log_t:s0 cloud-init-output.log  system_u:object_r:var_log_t:s0 private
+system_u:object_r:var_log_t:s0 cloud-init.log         system_u:object_r:var_log_t:s0 syslog
+system_u:object_r:var_log_t:s0 dmesg                     system_u:object_r:wtmp_t:s0 wtmp
+system_u:object_r:var_log_t:s0 kern.log
 
 
 
@@ -152,7 +476,27 @@ b)label  (check if we have label at the moment> ls -Z   - question marks appear 
 
 
 
-output:ssh_t only 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 														
