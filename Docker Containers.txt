@@ -64,7 +64,7 @@ docker start - dosn't build from image - just start the existing container
 >docker stop mywebserver - to stop container (only stoppend container can be removed) and then it's image can be deleted 
 
 
-How to nake Doker cantainer be running even if Linux server did REBOOT:
+How to nake Docker cantainer be running even if Linux server did REBOOT:
 
 open>man docker run - to check docs ,and do a search /restart policy   
 
@@ -180,7 +180,7 @@ see the virtual size !!!
 
 >virt-install --help - to get more help information
 
->virt-install --osinfo ubuntu-24.04 --name ubuntu1 --memory 3072 --vcpus 1 --import --disk /va/lib/libvirt/images/ubuntu-24.04-minimal-cloudimg-amd64.img --graphics none
+>virt-install --osinfo ubuntu-24.04 --name ubuntu1 --memory 3072 --vcpus 1 --import --disk /var/lib/libvirt/images/ubuntu-24.04-minimal-cloudimg-amd64.img --graphics none
 
 
 to excape is :cntrl+] - from vm machine
@@ -191,6 +191,455 @@ Now need create ROOT user in that vm for that we need install a tool:
 >virsh shutdown ubuntu1   - shut down our virtual machine
 
 Now we can configure and set a ROOT password in this machine:
+
+>sudo virt-customize -a /var/lib/libvirt/images/ubuntu-24.04-minimal-cloudimg-amd64.img --root-[assword password:password123
+
+>df -h  - to see virtual disks in the VM machine 
+
+Now we can disconnect from this VM
+
+
+>virsh console ubuntu1  - attach the console to virtual machine
+
+>sudo apt install libosinfo-bin 
+
+libosinfo-bin provides command line tools for detecting, identifying, and managing operating system information — especially useful in virtualization environments (KVM, QEMU, libvirt).
+
+
+>osinfo-query os - the way to see which OS are available
+
+////////////////AGAIN FOR ME //////////////////
+
+Install QEMY and KVM
+
+sudo apt install qemu-system qemu-utils qemu-kvm
+
+check:
+lsmod | grep kvm
+
+Create virtual disk 20GB
+qemu-img create -f qcow2 myvm.qcow2 20G
+
+
+Run VM with ISO
+
+qemu-system-x86_64 \
+  -enable-kvm \
+  -m 4G \
+  -cpu host \
+  -smp 2 \
+  -hda myvm.qcow2 \
+  -cdrom ubuntu.iso \
+  -boot d
+  
+PS: After os installing we can just run: qemu-system-x86_64 -enable-kvm -m 4G -cpu host -smp 2 -hda myvm.qcow2
+
+QEMU + KVM + virt manager(good GUI)
+
+Install virt manager and libvirt
+sudo apt install virt-manager libvirt-daemon-system libvirt-clients
+sudo systemctl enable --now libvirtd
+
+Add my user to the group:
+sudo usermod -aG libvirt $USER
+
+Start virt manager which will open a GUI:
+virt-manager
+
+Step 3. Create a VM
+
+File → New Virtual Machine
+
+Select the ISO
+Specify RAM/CPU
+Create a disk
+Start the installation
+
+virt-manager automatically:
+
+uses QEMU/KVM
+selects optimal drivers
+creates a NAT network
+manages snapshots
+
+Managing with  CLI (virsh)
+
+virsh list --all
+virsh start myvm
+virsh shutdown myvm
+
+Create Images with Packer (devops part)
+
+sudo apt install packer
+
+Minimal Packer pattern for QEMU/KVM
+ubuntu.json:
+
+{
+  "builders": [
+    {
+      "type": "qemu",
+      "iso_url": "ubuntu.iso",
+      "iso_checksum": "none",
+      "output_directory": "output-ubuntu",
+      "disk_size": 20000,
+      "format": "qcow2",
+      "accelerator": "kvm",
+      "ssh_username": "packer",
+      "ssh_password": "packer",
+      "ssh_timeout": "20m",
+      "shutdown_command": "echo 'packer' | sudo -S shutdown -P now"
+    }
+  ]
+}
+
+
+Do a build: 
+packer build ubuntu.json
+
+Packer:
+
+launches QEMU
+automatically installs the OS
+performs provisioning (Ansible, shell, cloud-init)
+creates a ready-to-use qcow2 image
+
+
+//////////////////////Demo ///////////////
+
+In short:
+
+This is a fully CLI-based VM installation, no GUI, downloading Debian installer from the web and installing it directly — very useful for automation, servers, and DevOps workflows.
+
+virt-install --osinfo debian12 --name debian1 --memory 1024 --vcpus 1 --disk size=10 \
+--location https://deb.debian.org/debian/dists/bookworm/main/installer-amd64/ \
+--graphics none --extra-args "console=ttyS0"
+
+What it does (simple explanation)
+
+This command creates and installs a virtual machine from the terminal using virt-install.
+
+Breakdown:
+virt-install
+Tool to create VMs from CLI (part of KVM/libvirt)
+--osinfo debian12
+Tells it the OS is Debian 12 (optimizes settings)
+--name debian1
+Name of the VM
+--memory 1024
+1 GB RAM
+--vcpus 1
+1 CPU core
+--disk size=10
+Creates a 10 GB virtual disk
+--location https://...
+Uses Debian installer directly from the internet (no ISO needed)
+--graphics none
+No GUI → runs in terminal (headless)
+--extra-args "console=ttyS0"
+Redirects installer output to terminal (so you can see and interact)
+
+
+In short:
+
+This is a fully CLI-based VM installation, no GUI, downloading Debian installer from the web and installing it directly — very useful for automation, servers, and DevOps workflows.
+
+
+///////LAB ///////////
+
+What does this command do?
+
+virsh destroy TestMachine - it stops VM (It forces a power off for the virtual machine called TestMachine.)Not deletes disks.
+
+Which of the following commands would you use to set the virtual machine called VM1 to automatically start up at boot?
+
+virsh autostart vmname
+
+Which of the following commands is used to list all docker containers (including stopped containers) present on a system?
+
+>docker ps -a 
+
+bob@caleston-lp10 ~ ✖ sudo docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+
+
+Pull docker.io/library/nginx image on this system.
+
+bob@caleston-lp10 ~ ✖ sudo docker pull docker.io/library/nginx
+
+
+Create and run a new Docker container based on the docker.io/library/nginx image. Three command line options should be used:
+
+
+A. The option to detach from this container's input/output (so you're not stuck inside the container once you run your command)
+
+
+B. The option to map port 1234 on the host to port 80 on the container
+
+
+C. The option to name this new container as website
+Mycommand will be:docker run --detach --publish 1234:80 --name website nginx:latest
+
+check if any container is running:
+bob@caleston-lp10 ~ ✖ sudo docker ps
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+
+bob@caleston-lp10 ~ ✖ sudo docker run --detach --publish 1234:80 --name website nginx:latest
+574169c0fd20b13ddba1e08f0a8cf741f126ceea0aca04a45190e3c94f570b2e
+
+check if running:
+
+bob@caleston-lp10 ~ ✖ sudo docker ps
+CONTAINER ID   IMAGE          COMMAND                  CREATED              STATUS              PORTS                                     NAMES
+574169c0fd20   nginx:latest   "/docker-entrypoint.…"   About a minute ago   Up About a minute   0.0.0.0:1234->80/tcp, [::]:1234->80/tcp   website
+
+
+
+Remove the docker.io/library/nginx docker image.
+
+For remove need first stop our container !!
+
+bob@caleston-lp10 ~ ✖ sudo docker stop website
+website
+
+Validate been stopped:
+bob@caleston-lp10 ~ ➜  sudo docker ps -a
+CONTAINER ID   IMAGE          COMMAND                  CREATED         STATUS                      PORTS     NAMES
+574169c0fd20   nginx:latest   "/docker-entrypoint.…"   2 minutes ago   Exited (0) 10 seconds ago             website
+
+bob@caleston-lp10 ~ ✖ sudo docker rmi nginx:latest
+Error response from daemon: conflict: unable to delete nginx:latest (must be forced) - container 574169c0fd20 is using its referenced image 7f0adca1fc6c
+
+I see need as well remove stopped CONTAINER before:
+
+bob@caleston-lp10 ~ ✖ sudo docker rm website
+website
+
+bob@caleston-lp10 ~ ✖ sudo docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+
+Now i can remove the image:
+
+bob@caleston-lp10 ~ ✖ sudo docker rmi nginx:latest
+Untagged: nginx:latest
+Deleted: sha256:7f0adca1fc6c29c8dc49a2e90037a10ba20dc266baaed0988e9fb4d0d8b85ba0
+
+
+
+Remove all docker containers (including running, stopped containers) from this system.
+
+bob@caleston-lp10 ~ ✖ sudo docker ps -a
+CONTAINER ID   IMAGE     COMMAND       CREATED          STATUS                      PORTS     NAMES
+f40a8a7104e7   ubuntu    "/bin/bash"   26 seconds ago   Exited (0) 25 seconds ago             determined_hodgkin
+
+bob@caleston-lp10 ~ ✖ sudo docker rm determined_hodgkin
+determined_hodgki
+
+bob@caleston-lp10 ~ ✖ sudo docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+
+
+
+Use the image called httpd to create and run an Apache web server. Bind port 9080 on the host to port 80 of the container. Set the restart policy so that this container always restarts if it stops unexpectedly or the system reboots. Name the container webinstance1.
+
+bob@caleston-lp10 ~ ✖ sudo docker image list 
+                                                                                                                i Info →   U  In Use
+IMAGE           ID             DISK USAGE   CONTENT SIZE   EXTRA
+ubuntu:latest   c4a8d5503dfb        119MB         31.7MB 
+
+Do not see httpd need to pull it first:
+
+bob@caleston-lp10 ~ ✖ sudo docker pull httpd
+Using default tag: latest
+
+Now run: 
+
+bob@caleston-lp10 ~ ➜  sudo docker run --detach --publish 9080:80 --restart always --name webinstance1 httpd
+9116aeffab117f5618ce668cc67ead29a9a40348f2a80427d1feeb5a1712a33a
+
+
+
+We have virsh utility installed that lets us interact with virtual machines and qemu-kvm installed that lets us create and run them.
+
+
+Check if any virtual machine is present on this system (stopped or running). If yes, then save its name in the /home/bob/vm file.
+
+
+bob@caleston-lp10 ~ ✖ sudo virsh list --all
+ Id   Name   State
+-----------------------
+ -    VM1    shut off
+
+
+bob@caleston-lp10 ~ ➜  sudo virsh list --all > /home/bob/vm
+
+
+In the previous question, you might have noticed that VM1 is in shut off state; start this VM.
+
+list all vms:
+
+bob@caleston-lp10 ~ ✖ sudo virsh list --all
+ Id   Name   State
+-----------------------
+ -    VM1    shut off
+ 
+bob@caleston-lp10 ~ ✖ sudo virsh start VM1
+Domain 'VM1' started 
+ 
+virsh start myvm
+virsh shutdown myvm
+
+
+Now, completely remove the VM1 virtual machine.
+
+bob@caleston-lp10 ~ ✖ sudo virsh list --all
+ Id   Name   State
+----------------------
+ 1    VM1    running
+
+
+bob@caleston-lp10 ~ ✖ sudo virsh shutdown VM1
+Domain 'VM1' is being shutdown
+
+
+bob@caleston-lp10 ~ ✖ sudo virsh destroy VM1
+Domain 'VM1' destroyed
+
+
+
+>virsh undefine --remove-all-storage VM1   - remove all the storage which machine created
+
+bob@caleston-lp10 ~ ✖ sudo virsh undefine --remove-all-storage VM1
+Domain 'VM1' has been undefined
+
+
+We have a configuration file /opt/testmachine2.xml on this system.
+
+
+Create a virtual machine using this configuration file, and make sure to start it.
+
+bob@caleston-lp10 ~ ✖ sudo virsh define /opt/testmachine2.xml
+Domain 'VM2' defined from /opt/testmachine2.xml
+
+bob@caleston-lp10 ~ ✖ sudo virsh list --all
+ Id   Name   State
+-----------------------
+ -    VM2    shut off
+
+
+bob@caleston-lp10 ~ ➜  sudo virsh start VM2
+Domain 'VM2' started
+
+Right now, when we start up or reboot this system, the virtual machines on it have to be manually started.
+But we want VM2 virtual machine to start up automatically at boot.
+
+
+
+
+bob@caleston-lp10 ~ ✖ sudo virsh autostart VM2
+Domain 'VM2' marked as autostarted
+
+
+Change the memory size for VM2; set its value to 80M.
+
+
+Make sure the changes are in effect; you can verify the same using sudo virsh dominfo VM2 command.
+
+>virsh setmaxmem VM2 80M --config
+>virsh setmem VM2 80M --config 
+>virsh destroy testmachine
+>virsh start testmachine
+>virsh dominfo - now we can seee it been changed
+
+bob@caleston-lp10 ~ ✖ sudo virsh setmaxmem VM2 80M --config
+
+bob@caleston-lp10 ~ ✖ sudo virsh setmem VM2 80M --config
+
+bob@caleston-lp10 ~ ✖ sudo virsh destroy VM2
+Domain 'VM2' destroyed
+
+bob@caleston-lp10 ~ ✖ sudo virsh start VM2
+Domain 'VM2' started
+
+bob@caleston-lp10 ~ ✖ sudo virsh dominfo VM2
+Id:             3
+Name:           VM2
+UUID:           d3d9b67e-09a6-49fa-b440-4c771ffb10cf
+OS Type:        hvm
+State:          running
+CPU(s):         1
+CPU time:       0.7s
+Max memory:     81920 KiB
+Used memory:    81920 KiB
+Persistent:     yes
+Autostart:      enable
+Managed save:   no
+Security model: selinux
+Security DOI:   0
+Security label: system_u:system_r:svirt_t:s0:c53,c189 (permissive)
+
+
+
+There is a cloud image available in /var/lib/libvrt/images/ folder use that image to spin up the virtual machine with the following details
+
+Name - kk-ubuntu
+
+
+Name - kk-ubuntu
+Memory - 1024 
+vcpus - 1 
+disk path - /var/lib/libvirt/images/ubuntu-22.04-minimal-cloudimg-amd64.img
+os-variant - ubuntu22.04 
+graphics -  none 
+network - default
+
+Note: It will take some time for the process to be completed.
+
+sudo virt-install \
+  --name kk-ubuntu \
+  --memory 1024 \
+  --vcpus 1 \
+  --disk path=/var/lib/libvirt/images/ubuntu-22.04-minimal-cloudimg-amd64.img,format=qcow2 \
+  --os-variant ubuntu22.04 \
+  --import \
+  --network network=default \
+  --graphics none
+  
+bob@caleston-lp10 ~ ✖ sudo virt-install \
+  --name kk-ubuntu \
+  --memory 1024 \
+  --vcpus 1 \
+  --disk path=/var/lib/libvirt/images/ubuntu-22.04-minimal-cloudimg-amd64.img,format=qcow2 \
+  --os-variant ubuntu22.04 \
+  --import \
+  --network network=default \
+  --graphics none
+WARNING  Requested memory 1024 MiB is less than the recommended 2048 MiB for OS ubuntu22.04  
+  
+  
+  Created again with 2024MB:
+  
+  bob@caleston-lp10 ~ ✖ sudo virt-install   --name kk-ubuntu2024   --memory 2024   --vcpus 1   --disk path=/var/lib/libvirt/images/ubuntu-22.04-minimal-cloudimg-amd64.img,format=qcow2   --os-variant ubuntu22.04   --import   --network network=default   --graphics none --check path_in_use=off
+WARNING  Disk /var/lib/libvirt/images/ubuntu-22.04-minimal-cloudimg-amd64.img is already in use by other guests ['kk-ubuntu'].
+WARNING  Requested memory 2024 MiB is less than the recommended 2048 MiB for OS ubuntu22.04
+
+Starting install...
+ERROR    Requested operation is not valid: Setting different SELinux label on /var/lib/libvirt/images/ubuntu-22.04-minimal-cloudimg-amd64.img which is already in use
+Domain installation does not appear to have been successful.
+If it was, you can restart your domain by running:
+  virsh --connect qemu:///system start kk-ubuntu2024
+otherwise, please restart your installation.
+
+
+
+
+
+
+
+
+
+
+
 
 
 
