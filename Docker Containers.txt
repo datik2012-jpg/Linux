@@ -1,0 +1,201 @@
+////////////Docker Containers /////
+
+Create and Manage Containers 
+
+
+Install MariaDB
+
+>sudo apt install mariadb-server
+
+Configure settiting by modifying files at /etc/mysql/
+
+Before might be better to add the user to docker group in Linux.Log off and Log in back ,then it will be working. - then he can run  docker commands without a sudo
+
+>sudo docker images - to list all images
+
+>docker -- help
+
+and we can find there a lot of help
+
+for example:
+>docker search nginx -  can show nginx daemon,images, libaries and etc
+
+>docker pull nginx  - get the lates nginx images
+>docker pull ubuntu nginx 
+to get specific image version:
+>docker pull nginx:1.22.1.2
+
+delete image:
+
+>docker rm ubuntu/nginx  
+>docekr rmi nginx:1.22.1.2  - remove by a imae tag
+
+
+>doeckr run nginx - run the docker (but will be moving our cmd to inside the docker)
+
+>docker run --detach --publish 8080:80 --name mywebserver nginx      - run detached with  port 80 inside the container forwarded to 8080 in my PC and container mywebserver
+
+
+how to find running containers:
+
+>docker ps  - will list containers ONLY RUNNING containers
+
+>docker ps -all - list all failed or stopped/exited
+
+>docker stop container_name
+
+>nc localhost 8080 -  is how you connect to a service running on your own machine using netcat on Linux.
+you’re telling netcat:
+“Open a TCP connection to port 8080 on my own machine.”
+
+If something is listening on that port, you’ll connect.
+
+Write: GET /  - to see the basse HTML file in response.And means NGINX and port are good and working
+
+Cntrl+D - to exit from nginx session
+
+NOte:
+docker run - build container from the an image and then start it
+docker start - dosn't build from image - just start the existing container 
+
+>docker rm container_name  - to remove the container 
+
+
+>docker stop mywebserver - to stop container (only stoppend container can be removed) and then it's image can be deleted 
+
+
+How to nake Doker cantainer be running even if Linux server did REBOOT:
+
+open>man docker run - to check docs ,and do a search /restart policy   
+
+
+>docker run --detach --publish 8080:80 --name myweb nginx --restart always    - and docker will always try to start this container
+
+
+
+Create own image:
+
+>mkdir myimage
+>cd myimage
+
+>vim index.html 
+Wellcome to the Dani's image
+
+>vim dockerfile
+FROM nginx
+COPY index.html /usr/share/nginx/html/index.html
+
+>docker build --tag dani/customnginx:1.0 myimage
+>man docker build - can help with examples
+
+
+Extra Network:
+
+>nc -vz localhost 8080 -  v verbose and z scan mode
+Check if a local port is open
+
+Listen to the port:
+>nc -l 8080  -      or write to file nc -l 8080 > received.txt
+
+///////////////////Manage and Configure Virtual Machines /////
+
+Linux (QEMU-KVM) - Quick Emulator Kernel-based Virtual Machine
+
+Virsh - Manage Virtual Machines from the CMD
+
+>sudo apt install virt-manager  Note :usully we need Linux UI for use it
+
+>vim testmachine.xml - create a file where we are going to add content for creationg virtual machine (look the xml in the internet)
+
+>virsh define testmachine.xml - will create the VM from this xml exctractions
+
+>virsh help - for more commands
+
+>virsh list  - to see active domains(machines)
+
+>virsh list --all  - to see all of them even those which are not active
+
+>virsh start testmachine - will start the machine
+
+>virsh reboot testmachine
+
+>virsh destroy testmachine - power off
+
+>virsh undefine testmachine  - delete testmachine
+
+>virsh help undifined - to check what undefined does
+
+>virsh undefine --remove-all-storage testmachine   - remove all the storage which machine created
+
+
+Start machine manually:
+>virsh define testmachine
+
+>virsh autostart testmachine  - start machine when Linux BOOTs
+
+>virsh autostart --disable testmachine   - disable start on the Linux boot
+
+>virsh dominfo testmachine   - to explore machine's resources  (CPU,Memory)
+
+>virsh set - to modify vm (like add more CPU)
+
+>virsh help setvcpus   - check the options
+
+>virsh setvcpu testmachine 2 --config 
+
+>virsh setvcpu testmachine 2 --config --maximum   - set maximum cpu 2 .Will not chage on the fly .Need stop the machine and start again
+>virsh setvcpu testmachine 2 --config 
+
+>virsh destroy testmachine
+
+>virsh start testmachine
+
+check if we have now 2 CPU:
+
+>virsh dominfo testmachine  - we will see 2 CPU now
+
+
+To change Memory size:
+>virsh setmaxmem testmachine 2048M --config
+>virsh setmem testmachine 2048M --config 
+>virsh destroy testmachine
+>virsh start testmachine
+>virsh dominfo - now we can seee it been changed
+
+//////Create adn Boot VM //////
+
+>wget https://cloud-images.ubuntu.com.....   - for download the ubuntu image which we later want to add to the VM
+
+>qemu-img info ubuntu-24.04-minimal-cloudimg-amd64.img   - will show the info about the Ubuntu downloaded image
+see the virtual size !!!
+
+>qemu-img resize ubuntu-24.04-minimal-cloudimg-amd64.img 10G   - resize to 10G virtual disk
+
+>ls /var/lib/libvirt/  - we can find images directory
+>sudo cp ubuntu-24.04-minimal-cloudimg-amd64.img /var/lib/libvirt/images   - copy image to the images dir
+
+>virt-install   - to see the next steps details
+
+>virt-install --osinfo list - to see the all distributions linux options and version 
+
+>virt-install --help - to get more help information
+
+>virt-install --osinfo ubuntu-24.04 --name ubuntu1 --memory 3072 --vcpus 1 --import --disk /va/lib/libvirt/images/ubuntu-24.04-minimal-cloudimg-amd64.img --graphics none
+
+
+to excape is :cntrl+] - from vm machine
+
+Now need create ROOT user in that vm for that we need install a tool:
+>sudo apt install -y libguestfs-tools
+
+>virsh shutdown ubuntu1   - shut down our virtual machine
+
+Now we can configure and set a ROOT password in this machine:
+
+
+
+
+
+
+
+
