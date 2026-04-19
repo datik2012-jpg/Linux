@@ -1,0 +1,321 @@
+////////////Users and Groups //////////
+
+>sudo adduser dani - add user.As well new group dani will be created. will bec created home directpry /home/dani.Default shell will be set to  /bin/bash and the files from /etc/skel wil be copied to /home/dani when dani login 
+to check which files inside
+>ls -a /etc/skel   - skeleton directory (later explain)
+
+bob@ubuntu-host ~ ➜  ls -a /etc/skel
+.  ..  .bash_logout  .bashrc  .profile
+
+>sudo passwd dani - set the passwrod for user
+
+>sudo deluser dani - delete account (will autodelete as well a group dani).but /home/dani - directory will remain
+
+>sudo deluser --remove-home dani  - delete as well home default directory (/home/dani)
+
+>sudo adduser -shell /bin/othershell --home /home/otherdirectory/ dani - create user in different not default directory
+
+>sudo adduser --shell /bin/othershell dani  -  when we want to keep default home directory /home/dani but shell option is different 
+The shell you specify must exist and be listed in /etc/shells.
+If it’s not, login may fail.
+
+for example:
+/bin/bash
+/bin/sh
+/bin/zsh
+/usr/bin/fish
+
+When we want to add new shell:
+Install Zsh: sudo apt install zsh
+Install Fish: sudo apt install fish
+Make sure it’s executable:sudo chmod +x /usr/local/bin/myshell
+Step 2 — Add the shell to /etc/shells
+sudo nano /etc/shells
+/usr/bin/zsh
+/usr/bin/fish
+/usr/local/bin/myshell
+Step 3 — Use the shell for a user
+sudo adduser --shell /usr/bin/zsh dani
+Or change an existing user’s shell:sudo chsh -s /usr/bin/zsh dani
+
+How to verify the shell works: ls -l /usr/bin/zsh
+Check that it’s in /etc/shells:cat /etc/shells
+If both are correct, the user can log in normally.
+
+
+Account details :username,user IDs,groups ,prefered shell and home directories are storied at /etc/passwd
+
+cat /etc/passwd
+
+dani:x:1001:1001::/home/dani/:/bin/shell
+1001 - is ID number associated with dani's username
+1001 - is ID of primary group - dani's group in this case
+
+
+>sudo adduser --uid 1100 dani - manually add different user ID during creation
+
+>ls -l /home/ -  to see which users or groups owns files or directories
+
+>ls -ln /home/ -  to see as well users and groups IDs
+
+
+>id - get IDs for the current user
+
+>whoami
+
+
+
+>sudo adduser --system --no-create-home sysacc - create system account  - will not creat home directory .ID for kind of these accounts id<1000.Use for services(daemons)
+
+>adduser --help - can give more instractions in case we forget
+
+
+>sudo usermod  --home /home/otherdirectory --move-home dani  - to change user directory to otherdirectory
+
+>sudo usermode -d /home/otherdirectory -m dani  - move direcotry will all access
+
+>sudo usermod --login dani vasya   or sudo usermod -l dani vasya  - change user name
+
+>sudo usermod --shell /bin/othershell dani  OR sudo usermod -s /bin/newshell vasya
+
+>sudo usermod --lock dani - disable without deleting the user.But user will be able to login with SSH key !!!
+
+>sudo usermod --unlock dani 
+
+>sudo usermod --expiredate 2026-10-10 dani OR sudo usermod -e 2026-10-10 dani - after expiration date user will not able to login
+
+>sudo usermod --expiredate "" dani - to remove expiration date from user
+
+
+>sudo chage --lastday 0 dani - expire the password (user will need to change it) OR sudo chage -d 0 dani 
+
+>sudo chage --lastday -1 dani - to cancel epire the passwrod OR sudo chage -d -1 dani
+
+>sudo chage --maxdays 30 dani OR sudo chage -M 30 dani -  make user change his password every 30 days
+
+>sudo chage --maxdays -1 dani OR sudo chage -M -1 dani - password never expires
+
+>sudo chage --list jane OR sudo chage -l dani   - to check when account expires
+
+/////////////Groups /////////////////
+
+>sudo adduser dani
+>sudo groupadd developers
+
+>sudo gpasswd --add dani developers - will add dani to developers group
+or
+>sudo gpasswd --a dani developers
+
+>groups dani  - to check to which groups belongs user 
+
+dani: dani developers - first is primary group (called dani) secondary is developes
+
+>sudo gpasswd --delete dani developers - delete the user from the group
+>sudo gpasswd -d dani developers 
+
+Sometimes we want to change PRIMARY user group:
+>sudo usermode -g developers dani  - do not confuse with (-G) which will change secondary group
+to avoid a mistake use: sudo usermod --gid developers dani  - for promary change group
+
+>groups dani
+dani:developers   - as you can see primary group been changed
+
+>gpasswd --help - to refresh the info about the commnand options
+
+>sudo groupmod --new-name programmers developers  - rename group to programmers OR sudo groupmode -n programmers developers
+
+>sudo groupdel programmers - to delete the group (if gives error for specific user which has promary group: sudo usermod --gid dani dani - change the primary group for this user with error)
+
+/////////////////LAB //////////
+
+
+Set the jane user account to expire on March 1, 2030.
+
+bob@ubuntu-host ~ ✖ sudo usermod -e 2030-03-01 jane
+
+Create a system account called apachedev
+
+sudo adduser --system --no-create-home apachedev
+
+bob@ubuntu-host ~ ✖ sudo adduser --system --no-create-home apachedev
+Adding system user `apachedev' (UID 107) ...
+Adding new user `apachedev' (UID 107) with group `nogroup' ...
+Not creating home directory `/home/apachedev'.
+
+Jane's account, i.e., jane, is expired.Unexpire the same and make sure it never expires again.
+
+bob@ubuntu-host ~ ✖ sudo usermod -e "" jane
+
+
+bob@ubuntu-host ~ ✖ sudo chage -M -1 jane
+
+bob@ubuntu-host ~ ✖ sudo chage -l jane
+Last password change                                    : Apr 19, 2026
+Password expires                                        : never
+Password inactive                                       : never
+Account expires                                         : never
+Minimum number of days between password change          : 0
+Maximum number of days between password change          : -1
+Number of days of warning before password expires       : 7
+
+
+Create a user account called jack with home directory and set its default login shell to be /bin/csh.
+
+
+sudo adduser --shell /bin/csh jack
+
+bob@ubuntu-host ~ ✖ sudo adduser --shell /bin/csh jack
+Adding user `jack' ...
+Adding new group `jack' (1002) ...
+Adding new user `jack' (1002) with group `jack' ...
+Creating home directory `/home/jack' ...
+Copying files from `/etc/skel' ...
+New password: 
+Retype new password: 
+passwd: password updated successfully
+Changing the user information for jack
+Enter the new value, or press ENTER for the default
+        Full Name []: jack
+        Room Number []: 100
+        Work Phone []: 1010101010
+        Home Phone []: 1010011001
+        Other []: 10
+Is the information correct? [Y/n] Y
+
+
+
+Delete the user account called jack and ensure his home directory is removed.
+
+
+bob@ubuntu-host ~ ✖ sudo deluser --remove-home jack   - will remove the user and it's home directory
+Looking for files to backup/remove ...
+Removing files ...
+Removing user `jack' ...
+Warning: group `jack' has no more members.
+Done.
+
+
+Mark the password for jane as expired to force her to immediately change it the next time she logs in.
+
+>sudo chage --lastday 0 jane - expire the password (user will need to change it) OR sudo chage -d 0 jane
+
+
+Add the user jane to the group called developers.
+
+
+
+>sudo gpasswd --add jane developers - will add dani to developers group
+or
+>sudo gpasswd --a jane developers
+
+bob@ubuntu-host ~ ➜  sudo gpasswd --add jane developers
+Adding user jane to group developers
+
+Create a group named cricket and set its GID to 9875
+
+bob@ubuntu-host ~ ✖ sudo groupadd cricket
+
+
+View all groups (simple list)
+getent group  OR cat /etc/group
+cricket:x:1003:
+
+>sudo groupmod -g 9875 cricket  - change group ID
+
+Validation:getent group
+
+cricket:x:9875:
+
+You already created a group cricket in the previous question. Now, rename this group soccer while preserving the same GID.
+
+
+sudo groupmod --new-name soccer cricket
+
+VAlidation: bob@ubuntu-host ~ ➜  cat /etc/group
+soccer:x:9875:
+
+
+Create a user sam with UID 5322. Also, make it a member of the soccer group.
+
+I check before the soccer group ID and use it with help ,to see the options to run with ID for user and ID for a group (adduser --help)
+
+bob@ubuntu-host ~ ➜  sudo adduser sam --uid 5322 --gid 9875
+Adding user `sam' ...
+Adding new user `sam' (5322) with group `soccer' ...
+Creating home directory `/home/sam' ...
+Copying files from `/etc/skel' ...
+New password: 
+Retype new password: 
+passwd: password updated successfully
+Changing the user information for sam
+Enter the new value, or press ENTER for the default
+        Full Name []: rer
+        Room Number []: erre
+        Work Phone []: er
+        Home Phone []: er
+        Other []: er
+Is the information correct? [Y/n] Y
+
+Validation:
+
+bob@ubuntu-host ~ ✖ id sam
+uid=5322(sam) gid=9875(soccer) groups=9875(soccer)
+
+The issue primary group as well soccer and need chaneg to sam
+
+bob@ubuntu-host ~ ✖ sudo groupadd sam
+
+sudo usermod -g sam sam
+
+sudo usermod -aG soccer sam
+
+
+bob@ubuntu-host ~ ➜  id sam
+uid=5322(sam) gid=9876(sam) groups=9876(sam),9875(soccer)
+
+Update primary group of user sam and set it to rugby
+
+bob@ubuntu-host ~ ➜  id sam
+uid=5322(sam) gid=9876(sam) groups=9876(sam),9875(soccer)
+
+bob@ubuntu-host ~ ➜  sudo usermod -g  rugby sam
+
+bob@ubuntu-host ~ ➜  id sam
+uid=5322(sam) gid=9877(rugby) groups=9877(rugby),9875(soccer)
+
+
+Delete the group called appdevs
+
+bob@ubuntu-host ~ ✖ sudo groupdel appdevs
+
+validation:
+bob@ubuntu-host ~ ➜  cat /etc/group
+
+
+Make sure the user jane gets a warning at least 2 days before the password expires.
+
+Validation: sudo chage -W 2 jane
+
+sudo chage -l jane
+bob@ubuntu-host ~ ➜  sudo chage -l jane
+Last password change                                    : password must be changed
+Password expires                                        : password must be changed
+Password inactive                                       : password must be changed
+Account expires                                         : never
+Minimum number of days between password change          : 0
+Maximum number of days between password change          : -1
+Number of days of warning before password expires       : 2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
