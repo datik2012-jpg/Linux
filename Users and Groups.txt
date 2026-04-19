@@ -551,3 +551,103 @@ if [ -d "$HOME/.config/bin" ]; then
     PATH="$HOME/.config/bin:$PATH"
 fi
 
+
+///////////////////////////////////////Configure User Resouce Limits ////////////
+
+
+controls per user and per group resource limits on Linux, such as maximum open files, max processes, memory lock size, and more. These limits apply when users log in through PAM (Pluggable Authentication Modules).
+
+>sudo vim /etc/security/limits.conf 
+
+domain type item value
+
+dani   hard  nproc  10
+@developers  soft  nproc 20
+*            soft    cpu  5      - * says for everyuser in the system set the limit cpu to 5
+
+>man limits.com  - for more information
+
+If we set limit for user dani:
+dani  -  nproc 3     - which says user allowed to run only 3 processes
+
+After modification in the file run log of and log in > sudo -iu dani
+>ps | less 
+3 processess we will secondary
+
+Try to lounch more processes:
+>ls -a | grep bash | less 
+Output: Resource temporary unavailable
+
+>logout
+
+
+
+To check the limit for the current session:
+>ulimit -a
+
+Use can only lower his limits not raise them up:
+>ulimit -u 5000   - set less user processes (was 14722 before),More over use can raise only once even of hard is allowed more
+
+
+
+>groups - You get the groups for your current user.
+dani : dani sudo docker audio
+
+to grand to the user sudo priviligies - need to add him to the sudo group
+>sudo grasswd -a alex sudo - now user can do whatever he want in the system
+
+For more fine tuned premissions we have different approach :
+
+first remove alex from the sudo group:
+>suod gpasswd -d alex sudo
+
+need to edit the file:
+>sudo visudo
+%sudo   ALL=(ALL:ALL) ALL
+
+%sudo - users group - define this policy for 
+ALL=  - is a host ,can be defined the rule only for the servers with specific IP values
+(ALL:  - run as user field,we can type the list of usernames ,by default sudo runs by root user,But sudo can be used DANI can run commands for some others regular user like ALEX(or list of users).So root user can be run as DANI only (can be a list)
+ALL) - run as group filed ,so the same here,users that belongs to the sudo group can use sudo to run commands as any group
+
+ALL - list of commands which are listed -and onloy can be running by sudo
+
+Examples define a policy to DANI user to run any commands with sudo:
+
+dani ALL=(ALL)   ALL    -where ALL=(ALL) - we do not specify any group so dani can run commads as any group too
+
+%developers ALL=(ALL) ALL - all group users from developers can runn all commands for all users (nothing defined for groups -so they can run as well for all groups)
+
+
+Set dani to run sudo commands as user Sasha or Vasya
+
+dani ALL=(sasha,vasya) ALL
+
+
+dani ALL=ALL  - as well valid format
+
+dani ALL=(ALL) /bin/ls, /bin/stat   - allow to run only those commands
+
+When we login first and want to run sudo it will be asking for a password (to disable it):
+
+%sudo ALL=(ALL) NOPASSWD: ALL 
+
+dani ALL= NOPASSWD:ALL - user able to run sudo commands without providing a password 
+
+Simulate akex user and chech if he has an access to my dir:
+
+>sudo -u alex ls /home/dani 
+
+Note: You are telling the system:
+
+“Run the command ls /home/dani as if you were user alex.”
+
+So instead of you listing /home/dani, the system switches identity to alex and checks whether alex has permission to see inside /home/dani.
+
+Simulate another user without switching shells
+No need to run su - alex; just run a single command as alex.
+
+sudo -u alex whoami - just check
+
+Open a shell as alex:
+sudo -u alex -s
