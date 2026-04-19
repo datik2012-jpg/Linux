@@ -307,15 +307,247 @@ Maximum number of days between password change          : -1
 Number of days of warning before password expires       : 2
 
 
+////////////////////Manage system wide Environment Profiles ///////////
+
+>printenv OR env  - will show env path and variables
+
+>HISTSIZE=1000 to change the max size of shell command history
+
+>history - can show last run commands and HISTSIZE can show (as we set only 1000 last commands)
+
+>echo $HOME will show the home path
+
+>touch $HOME/saved_file - can be used in the scripts depends on the user login /home/dani or /home/alex
+
+To add MY or user own env variables:
+
+>touch .bashrc 
+(cat .bashrc to check the content)
+
+To add env variable as global for the entire system:
+
+>sudo vim /etc/environment 
+KODEKNLOUD=https://kodekloud.com 
+
+check the variable with even different user:
+
+>echo $KODEKLOUD
+
+Script in this location will auto executed when user LOGIN:
+
+>sudo vim /etc/profile.d/lastlogin.sh  - create a script in this location.Do not add #!/bin/bash whe we create sripts in this dir
+echo "Last login" > $HOME/lastlogin
+date >> $HOME/lastlogin
+
+
+Log out and Login and check:
+>cat lastlogin
+
+//////////////////////////////Manage Template User Env /////////
+
+When user been created all files from /etc/skel been copied to user new directory .And this is helpful when we want to create a TEMPLATE for user environment
+
+bob@ubuntu-host ~ ➜  ls -a /etc/skel
+.  ..  .bash_logout  .bashrc  .profile
+
+
+We can create a file which will inform new created user about something major or needed or RULES about the server and etc:
+
+>sudo vim /etc/skel/README
+
+Please do not run CPU-intensive processes between 16:00 - 20:00 PM
+
+>sudo adduser dani 
+
+>suod ls -a /home/dani   - (-a) will show the files with . (dot)
+.  ..  .bash_logout  .bashrc  .profile READMY - now the file is here
+
+//////////////////////LAB //////////////////////////////////
+
+
+How can we print the value of an environment variable?
+
+echo $NYVAR
+
+How can we print the value of an environment variable?
+
+
+bob@ubuntu-host ~ ➜  echo $HOME
+/home/bob
+
+Which of the following files can be used to set the globally available environment variables in a Linux-based system?
+
+bob@ubuntu-host ~ ✖ ls /etc/environment
+/etc/environment
+
+Print our current user's (bob) environment and save the output in the /home/bob/env file.
+
+
+You can use the redirection to save your command's output in a file: [your-command] > /home/bob/env
+
+bob@ubuntu-host ~ ➜  printenv
+SHELL=/bin/bash
+GLOBALENV=OFF
+PWD=/home/bob
+LOGNAME=bob
+XDG_SESSION_TYPE=tty
+HOME=/home/bob
+LANG=en_US.UTF-8
+LS_COLORS=rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:
+STARSHIP_SHELL=bash
+STARSHIP_SESSION_KEY=2345321269550147
+XDG_SESSION_CLASS=user
+TERM=xterm-256color
+USER=bob
+SHLVL=1
+XDG_SESSION_ID=c1
+XDG_RUNTIME_DIR=/run/user/1000
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+MAIL=/var/mail/bob
+_=/usr/bin/printenv
+
+bob@ubuntu-host ~ ➜  printenv > /home/bob/env
+
+
+Add an environment variable for user bob.
+
+
+The variable name should be MYVAR and its value should be TRUE
+
+Add to the current USER !!!!
+
+vim ~/.bashrc
+
+export MYVAR=TRUE
+
+reload:
+source ~/.bashrc
+
+ob@ubuntu-host ~ ➜  env
+SHELL=/bin/bash
+MYVAR=TRUE
+GLOBALENV=OFF
+PWD=/home/bob
+
+Identify the value of GLOBALENV environment variable and save it in the /home/bob/globalenv file.
+
+
+You can use the redirection to save your command's output in a file: [your-command] > /home/bob/globalenv
+
+bob@ubuntu-host ~ ➜  env | grep "GLOBALENV"
+GLOBALENV=OFF
+
+bob@ubuntu-host ~ ➜  env | grep "GLOBALENV" > /home/bob/globalenv
+
+
+
+Whenever we add a new user to the system, some files are copied from a template directory to the user's home directory.
+
+
+Manually copy those files into the /home/bob/default_data directory.
+
+Created new user:
+
+bob@ubuntu-host ~ ✖ sudo adduser dani
+Adding user `dani' ...
+Adding new group `dani' (1001) ...
+Adding new user `dani' (1001) with group `dani' ...
+Creating home directory `/home/dani' ...
+Copying files from `/etc/skel' ...
+New password: 
+Retype new password: 
+passwd: password updated successfully
+Changing the user information for dani
+Enter the new value, or press ENTER for the default
+        Full Name []: d
+        Room Number []: d
+        Work Phone []: d
+        Home Phone []: d
+        Other []: d
+Is the information correct? [Y/n] Y
+
+Now we can see these hidden files in new user dir:
+
+bob@ubuntu-host ~ ➜  sudo ls -a /home/dani
+.  ..  .bash_logout  .bashrc  .profile
+
+
+
+bob@ubuntu-host ~ ➜  sudo cp -a /home/dani/. /home/bob/default_data/
+
+Correct solution was : sudo cp /etc/skel/.bash* /home/bob/default_data/  - so they were meaning to copy from the skel source manually to the user
+
+
+Modify the system-wide environment file and make sure that the variable GLOBALOPTION is set to this value: ON. Otherwise, after you modify that file, any user that logs in and types…
+
+bob@ubuntu-host ~ ➜  env
+SHELL=/bin/bash
+MYVAR=TRUE
+GLOBALENV=OFF
+PWD=/home/bob
+
+bob@ubuntu-host ~ ✖ sudo vim /etc/environment
+GLOBALENV=ON
+
+If you used /etc/environment, you need a full logout/login or:
+su - bob
+
+bob@ubuntu-host ~ ➜  sudo nano /etc/environment
+
+bob@ubuntu-host ~ ➜  cat  /etc/environment
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin"
+LANG=en_US.UTF-8
+GLOBALENV=ON
+MYVAR=TRUE
+GLOBALOPTION=ON
 
 
 
 
 
+Make sure that this command gets executed for any user that logs in to the system:
 
 
+echo Welcome to our server!
 
 
+sudo vim /etc/profile.d/global-command.sh
+and add there echo "Welcome to our server!"
+sudo chmod +x /etc/profile.d/global-command.sh
 
 
+Make sure that every time a new user account is added to the system, a file called README is copied to the new user's home directory.
+
+bob@ubuntu-host ~ ➜  sudo vim /etc/skel/README
+
+
+Set a variable named LFCS with value Welcome to the KodeKloud LFCS Labs! for every user that logs into this system.
+
+
+Note: You may need to login again to make the changes take effect, so run sudo su - <current-user-name>.
+
+bob@ubuntu-host ~ ✖ env
+SHELL=/bin/bash
+MYVAR=TRUE
+GLOBALENV=OFF
+
+sudo vim /etc/environment
+
+LFCS="Welcome to the KodeKloud LFCS Labs!"
+
+Note: You may need to login again to make the changes take effect, so run sudo su - <current-user-name>.
+
+
+Add the value of $PATH variable for user bob to include $HOME/.config/bin location in the path.
+
+bob@ubuntu-host ~ ➜  ls -a
+.  ..  .bash_logout  .bash_profile  .bashrc  .cache  .config  default_data  env  globalenv  .profile  .viminfo
+
+bob@ubuntu-host ~ ➜  vim .bashrc
+
+# Add custom bin directory to PATH
+if [ -d "$HOME/.config/bin" ]; then
+    PATH="$HOME/.config/bin:$PATH"
+fi
 
