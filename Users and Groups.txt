@@ -651,3 +651,351 @@ sudo -u alex whoami - just check
 
 Open a shell as alex:
 sudo -u alex -s
+
+
+///////////////////LAB ////////////////
+
+Which of the following keywords can we use to limit the number of processes a user can run?
+
+nproc
+
+Which of the following keywords can we use to limit the number of processes a user can run?
+
+>sudo vim /etc/security/limits.conf  - command is not working
+
+sudo -E vim /etc/security/limits.conf
+
+add:
+
+#*               soft    core            0
+#root            hard    core            100000
+#*               hard    rss             10000
+#@student        hard    nproc           20
+#@faculty        soft    nproc           20
+#@faculty        hard    nproc           50
+#ftp             hard    nproc           0
+#ftp             -       chroot          /ftp
+#@student        -       maxlogins       4
+trinity          -       nproc           30
+
+
+Identify all the security limits currently applied in our user's session and save them in the /home/bob/limits file.
+
+
+You can use the redirection to save your command's output in a file: [your-command] > /home/bob/limits
+
+To check the limit for the current session:
+>ulimit -a
+
+bob@ubuntu-host ~ ✦ ✖ ulimit -a
+real-time non-blocking time  (microseconds, -R) unlimited
+core file size              (blocks, -c) 0
+data seg size               (kbytes, -d) unlimited
+scheduling priority                 (-e) 0
+file size                   (blocks, -f) unlimited
+pending signals                     (-i) 257164
+max locked memory           (kbytes, -l) 8192
+max memory size             (kbytes, -m) unlimited
+open files                          (-n) 1024
+pipe size                (512 bytes, -p) 8
+POSIX message queues         (bytes, -q) 819200
+real-time priority                  (-r) 0
+stack size                  (kbytes, -s) 8192
+cpu time                   (seconds, -t) unlimited
+max user processes                  (-u) 1048576
+virtual memory              (kbytes, -v) unlimited
+file locks                          (-x) unlimited
+
+bob@ubuntu-host ~ ✦ ➜  ulimit -a > /home/bob/limits
+
+NOte:
+. Temporary change (affects only the current shell)
+You can change limits for your current session using ulimit directly:
+
+Examples:
+
+bash
+ulimit -n 4096
+ulimit -u 200000
+ulimit -l 16384
+
+Permanent change (system‑wide or per‑user)
+/etc/security/limits.conf
+
+and sometimes:
+
+/etc/security/limits.d/*.conf
+
+Modify the sudoers file in such a way to allow the user called trinity to run any sudo command without needing to provide her password.
+
+
+>sudo visudo  -  to modify sudoers file
+
+add there trinity ALL=(ALL) NOPASSWD:ALL +ctrl+o +ctrl+x
+
+Modify the sudoers file again. Remove your previous entry for the user called trinity if it still exists.
+Now add a new entry that allows trinity to only run the /usr/bin/mount command with sudo.
+
+sudo visudo
+
+Add there trinity ALL=(ALL) /usr/bin/mount
+
+
+Make changes in security limits file for user stephen so that he can create maximum filesize upto 4 MiB. This should be a hard limit.
+
+>sudo -E vim /etc/security/limits.conf
+
+stephen          hard    fsize           4096
+
+
+Set a soft limit of 20 processes for everyone in the salesteam group.
+
+sudo -E vim /etc/security/limits.conf
+
+@salesteam       soft    nproc           20
+
+Define a policy for all the users in the salesteam group to run any sudo command.
+
+sudo visudo
+
+%salesteam ALL=(ALL) ALL
+
+Define a policy so that user trinity can run sudo commands as the user sam.
+
+Define a policy so that user trinity can run sudo commands as the user sam.
+
+sudo visudo OR sudo visudo /etc/sudoers
+Add there:
+trinity ALL=(sam) ALL 
+
+We applied a hard limit of 10 processes for all the users under developers group, but somehow the limit isn't working. Look into the issue and fix the same.
+
+sudo -E vim /etc/security/limits.conf
+
+@developers      hard    nproc           10
+
+
+Modify the sudoers file again. Remove your previous entry for the user called trinity if it still exists.
+Now add a new entry that allows trinity to run all commands with sudo, but only after entering the password.
+
+sudo visudo /etc/sudoers
+
+trinity ALL=(ALL) ALL
+
+///////////////////Manage access to the root account in Linux ///////////
+
+When we run :sudo ls /toor/  - is the same like we say root user execute root
+
+sudo --login IS THE SAME LIKE sudo -i -  which login as a root
+>logout - logout from the root session
+
+User which does not have sudo(root) priviligies bu KNOW THE ROOT Password can run next:
+>su -  OR su --login  OR su -l   - which will logins as a root need input a password
+
+Sometimes Linux systems have LOCKED ROOT USER - for the purpose WE CAN NOT LOGIN TO THIS ROOT USER WITH REGULAR Password
+so sudo --login   - will still working BUT su -   - will not cause need write the PASSWORD
+
+Set the password for a root user:
+>sudo passwd root
+
+If rooot had password but it was locked for some reason we can UNLOCK:
+sudo passwd --unlock root OR sudo passwd -u root
+and now we can run :su -u and use password
+
+Lock password based logins with a ROOT:(danger to lock yourself without a root)
+
+sudo passwd --lock root OR sudo passwd -l root
+
+If your goal is not to accidentally lock yourself out of your Linux system by losing root access, there are a few reliable safety practices. This is a smart thing to think about — many people break sudo or delete the only admin user and end up stuck.
+
+Here’s how to avoid that situation.
+
+getent group sudo
+
+If your username is not listed, add yourself (requires existing sudo/root):
+
+sudo usermod -aG sudo bob
+
+DANGER: Never remove root’s password unless you know what you’re doing
+sudo passwd -l root
+
+This is safe only if you have a working sudo user.
+
+If you want root to stay accessible, set a password:
+
+sudo passwd root
+
+Avoid breaking sudoers
+Never edit /etc/sudoers directly with a normal editor.
+
+Use:
+
+sudo visudo
+
+It checks for syntax errors so you don’t lock yourself out.
+
+Keep SSH access enabled (optional)
+If it’s a server, enable SSH and keep a key‑based login.
+Even if your local session breaks, SSH can save you.
+
+Create a backup admin user (recommended)
+Create a second admin user:
+
+bash
+sudo adduser adminbackup
+sudo usermod -aG sudo adminbackup
+
+///////////////////////Configure the System to use LDAP User and Group Accounts ////////////
+
+Users accounts defined at /etc/passwd  file
+
+
+
+File	Purpose
+/etc/passwd	Defines user accounts + basic info
+/etc/shadow	Stores password hashes (secure)
+/etc/group	Defines groups
+/etc/gshadow	Secure group passwords
+
+
+When do we need ADD,REMOVE,MODIFY user account and groups - in multiples individual servers we do not want manually do one by one
+We need to update the data in single location - LDAP server !!
+
+LDAP is the right direction if you want centralized user management across many Linux servers. Instead of adding users manually on each machine, LDAP lets you define users once and have all servers authenticate against the same directory.
+
+What LDAP actually gives you
+LDAP provides:
+
+Centralized user accounts
+
+Centralized passwords
+
+Centralized groups
+
+Centralized access control
+
+One place to disable a user and remove access everywhere
+
+This means /etc/passwd and /etc/shadow on each server no longer store real users — they come from LDAP.
+
+Which should you choose?
+Option	Best for	Notes
+FreeIPA	10–1000 Linux servers	Easiest, most complete, recommended
+OpenLDAP	Custom setups	More work, no Kerberos by default
+Active Directory	Mixed Windows + Linux	Linux joins via SSSD
+
+
+XC vs Docker (important difference)
+People often confuse them.
+
+Feature	LXC	Docker
+Purpose	System containers (full OS)	Application containers
+Runs	Full Linux distro	Single app or service
+Init system	Yes (systemd)	No (usually one process)
+Use case	VM replacement	Microservices
+
+LXC vs LXD
+You’ll also see LXD, which is a management layer on top of LXC.
+
+LXC = low‑level container tools
+
+LXD = easier, modern, API‑driven container manager
+
+Most people today use LXD, not raw LXC.
+
+
+
+In our example we will not configure LDAP from Zero - we will use LXC as a Docker :
+>lxt init
+>ls -la
+>lxc import ldap-server.tar.xz
+>lxc list   - will show stopped container
+>lxc start ldap-server 
+password is a password for the server if we want to add the data
+
+Easier way to add users and groups to this LDAP server is (we need additional tool):
+>sudo apt updated && sudo apt install libnss-ldapd
+
+and need to configure an url ip to ldap server + domain addresses example.com dc=example,dc=com
+
+and complete the configuration.You can see it will create the file:/etc/nnswitch.conf
+
+>cat /etc/nnswitch.conf
+
+passwd:   files systemd ldap
+group:    files systemd ldap
+shadow:   files systemd ldap
+
+exactly what we choice during configuration (users,groups,passwords)
+
+so NSLD - is able to get the data from LDAP server 
+and the main configuration fail can be found at /etc/nslcd.conf
+>sudo cat /etc/nslcd.conf
+
+ip LDAP server can be there which we configured before
+domain addressses which we configured
+
+
+Sometimes when we search for the user it will say user is not exist - cause the user can be defined at LDAP
+to check the user in Linux as well in LDAP
+>getend passwd   -get entries ,and the command will ask DSDP to show entries for the passwd section(users)
+
+>getend passwd --service ldap - to see only LDAP entries for users
+
+>getend group --service ldap - to se the GROUPS in entries in LDAP
+
+If we check the server for user JANE which is defined in LDAP ,we will not see the she;s personal directory to this user NOT EXIST /home/JANE!!!
+
+SO we need to use PAM - modul which automaticaly triggers when user connect to the system
+
+PAM = Pluggable Authentication Modules
+
+It’s the system that controls how users authenticate on Linux.
+
+Whenever you:
+
+log in via console
+
+use SSH
+
+run sudo
+
+unlock the screen
+
+change your password
+
+start a service that requires authentication
+
+…PAM decides what checks happen and in what order.
+
+Think of PAM as the “authentication engine” behind Linux.
+
+AM controls:
+
+Password authentication
+
+Password complexity rules
+
+Account lockout policies
+
+2FA (Google Authenticator, Duo, etc.)
+
+SSH login rules
+
+Sudo rules
+
+Session limits
+
+Resource limits (via pam_limits.so)
+
+Access control (via pam_access.so)
+
+It’s extremely powerful — and easy to break if misconfigured.
+
+>sudo pam-auth-update   - to do some PAM config which we need
+
+Now try do login with jane
+>sudo login jane   - PAM will create a /home/jane directory for this user
+
+
+
