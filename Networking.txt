@@ -193,4 +193,574 @@ OR more files with examples with configurations:
 >ls /usr/share/doc/netplan/examples - files with examples of configurations (like dchp or static network settings file exaples)
 
 
+/////////////Status of the Network Services and Start and Stop //////////
 
+>sudo ss -ltunp - to see who is listening and which ip and port 
+where:
+-l - listening
+-t - listen tcp connections
+-u - listen udp connections
+-n - numeric values
+-p - precesses
+
+the same command but different order of the parameters:
+>sudo ss -tunlp     - easy to remmember like tunel options.And we can see Process names what they are listening
+
+>ss --help - for more options
+
+
+>systemctl status mariadb.service  - we can see the process ID
+
+Note: ssh.service in Ubuntu and in RedHat is sshd name
+
+>sudo stop systemctl stop mariadb.service  - stop the service/process
+
+>sudo disable systemctl mariadb.service  - to disable service
+>sudo enable systemctl mariadb.service
+>sudo start systemctl mariadb.service
+
+
+Anothe example:
+>sudo ss -ltunp
+Process: ssdh,pid=697,fd=3      - we can see the process id
+
+Now we can explore the process by id:
+>ps 697
+
+Or to check which files been opend by the process:
+
+>sudo lsof -p 697
+
+
+OR:
+
+>sudo netstat -ltunp     - the same like ss command but sometimes not available in all Linux systems
+
+
+
+Show IP addresses:
+>ip addr
+Show routing table:
+>ip route
+Show DNS:
+>resolvectl status
+
+//////////////////////LAB ///////////////////
+
+
+Where do we configure static hostname resolution?
+
+bob@ubuntu-host ~ ➜  cat /etc/hosts
+# Kubernetes-managed hosts file.
+127.0.0.1       localhost
+::1     localhost ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+fe00::0 ip6-mcastprefix
+fe00::1 ip6-allnodes
+fe00::2 ip6-allrouters
+192.168.239.5   ubuntu-host
+
+bob@ubuntu-host ~ ✖ cat /etc/hostname
+ubuntu-host
+
+How do we see what processes on our system are listening for incoming network connections, on the TCP and UDP protocols?
+
+bob@ubuntu-host ~ ➜  sudo ss -ltunp
+Netid  State   Recv-Q  Send-Q   Local Address:Port    Peer Address:Port  Process                                                    
+udp    UNCONN  0       0        127.0.0.53%lo:53           0.0.0.0:*      users:(("systemd-resolve",pid=640,fd=13))                 
+udp    UNCONN  0       0              0.0.0.0:111          0.0.0.0:*      users:(("rpcbind",pid=618,fd=5),("systemd",pid=1,fd=28))  
+udp    UNCONN  0       0                 [::]:111             [::]:*      users:(("rpcbind",pid=618,fd=7),("systemd",pid=1,fd=30))  
+tcp    LISTEN  0       128            0.0.0.0:8080         0.0.0.0:*      users:(("ttyd",pid=1117,fd=12))                           
+tcp    LISTEN  0       128            0.0.0.0:22           0.0.0.0:*      users:(("sshd",pid=1114,fd=3))                            
+tcp    LISTEN  0       4096           0.0.0.0:111          0.0.0.0:*      users:(("rpcbind",pid=618,fd=4),("systemd",pid=1,fd=27))  
+tcp    LISTEN  0       4096     127.0.0.53%lo:53           0.0.0.0:*      users:(("systemd-resolve",pid=640,fd=14))                 
+tcp    LISTEN  0       128               [::]:22              [::]:*      users:(("sshd",pid=1114,fd=4))                            
+tcp    LISTEN  0       4096              [::]:111             [::]:*      users:(("rpcbind",pid=618,fd=6),("systemd",pid=1,fd=29))
+
+
+Identify the IP address of the eth0 interface on our current system.
+
+
+Create a file called /home/bob/ip and save the ip address value (with subnet) in it.
+
+
+To show all: 
+
+bob@ubuntu-host ~ ✖ ip -c addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+3: eth0@if8879: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1410 qdisc noqueue state UP group default 
+    link/ether b6:e1:79:cb:d4:4f brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet 192.168.239.5/32 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::b4e1:79ff:fecb:d44f/64 scope link 
+       valid_lft forever preferred_lft forever
+4: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default 
+    link/ether 02:42:5e:e2:1c:36 brd ff:ff:ff:ff:ff:ff
+    inet 172.12.0.1/24 brd 172.12.0.255 scope global docker0
+       valid_lft forever preferred_lft forever
+	   
+
+To show only specific interface:
+
+bob@ubuntu-host ~ ✖ ip addr show dev eth0
+3: eth0@if8879: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1410 qdisc noqueue state UP group default 
+    link/ether b6:e1:79:cb:d4:4f brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet 192.168.239.5/32 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::b4e1:79ff:fecb:d44f/64 scope link 
+       valid_lft forever preferred_lft forever	  
+
+bob@ubuntu-host ~ ✖ ip addr show dev eth0 > /home/bob/ip	
+
+bob@ubuntu-host ~ ➜  ip addr show dev eth0 | grep inet
+    inet 192.168.239.5/32 scope global eth0
+    inet6 fe80::b4e1:79ff:fecb:d44f/64 scope link  
+
+bob@ubuntu-host ~ ➜  ip addr show dev eth0 | grep inet | awk '{print $2}'
+192.168.239.5/32
+fe80::b4e1:79ff:fecb:d44f/64
+
+
+bob@ubuntu-host ~ ✖ ip addr show dev eth0 | grep inet | awk '{print $2}' > /home/bob/ip
+
+bob@ubuntu-host ~ ➜  ip addr show dev eth0 | grep inet | awk '{print $2}' > /home/bob/ip
+
+bob@ubuntu-host ~ ➜  cat /home/bob/ip
+192.168.239.5/32
+fe80::b4e1:79ff:fecb:d44f/64	
+
+Remove subnet mask from the output:
+
+bob@ubuntu-host ~ ✖ ip addr show dev eth0 | grep inet | awk '{print $2}' | cut -d'/' -f1
+192.168.239.5
+fe80::b4e1:79ff:fecb:d44f
+
+ip addr show dev eth0 | grep inet | awk '{print $2}' | cut -d'/' -f1 > /home/bob/ip
+
+
+Identify the default gateway on this system and store the output (only the IP address) in the /home/bob/gateway.txt file
+
+bob@ubuntu-host ~ ✖ ip route
+default via 169.254.1.1 dev eth0 
+169.254.1.1 dev eth0 scope link 
+172.12.0.0/24 dev docker0 proto kernel scope link src 172.12.0.1 linkdown
+
+bob@ubuntu-host ~ ✖ ip route | egrep -o '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'
+169.254.1.1
+169.254.1.1
+172.12.0.0
+172.12.0.1
+
+bob@ubuntu-host ~ ➜  ip route | egrep -o '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' > /home/bob/gateway.txt
+
+Only one ip: bob@ubuntu-host ~ ➜  ip route | egrep  "^169" | awk '{print $1}' > /home/bob/gateway.txt
+
+
+Find out what process is listening for incoming connections on port 22 and identify its PID.
+
+
+Create a file called /home/bob/pid and save the PID value in it.
+
+bob@ubuntu-host ~ ✖ sudo ss -ltunp
+Netid  State   Recv-Q  Send-Q   Local Address:Port    Peer Address:Port  Process                                                    
+udp    UNCONN  0       0        127.0.0.53%lo:53           0.0.0.0:*      users:(("systemd-resolve",pid=640,fd=13))                 
+udp    UNCONN  0       0              0.0.0.0:111          0.0.0.0:*      users:(("rpcbind",pid=618,fd=5),("systemd",pid=1,fd=28))  
+udp    UNCONN  0       0                 [::]:111             [::]:*      users:(("rpcbind",pid=618,fd=7),("systemd",pid=1,fd=30))  
+tcp    LISTEN  0       128            0.0.0.0:8080         0.0.0.0:*      users:(("ttyd",pid=1117,fd=12))                           
+tcp    LISTEN  0       128            0.0.0.0:22           0.0.0.0:*      users:(("sshd",pid=1114,fd=3))                            
+tcp    LISTEN  0       4096           0.0.0.0:111          0.0.0.0:*      users:(("rpcbind",pid=618,fd=4),("systemd",pid=1,fd=27))  
+tcp    LISTEN  0       4096     127.0.0.53%lo:53           0.0.0.0:*      users:(("systemd-resolve",pid=640,fd=14))                 
+tcp    LISTEN  0       128               [::]:22              [::]:*      users:(("sshd",pid=1114,fd=4))                            
+tcp    LISTEN  0       4096              [::]:111             [::]:*      users:(("rpcbind",pid=618,fd=6),("systemd",pid=1,fd=29))  
+
+bob@ubuntu-host ~ ➜  sudo ss -ltunp | egrep 22 | egrep -o 'pid=[0-9]+' | cut -d= -f2
+1114
+1114
+
+bob@ubuntu-host ~ ➜  sudo ss -ltunp | egrep 22 | egrep -o 'pid=[0-9]+' | cut -d= -f2 | head -1
+1114
+
+bob@ubuntu-host ~ ➜  sudo ss -ltunp | egrep 22 | egrep -o 'pid=[0-9]+' | cut -d= -f2 | head -1 > /home/bob/pid
+
+
+Now, find out what process is listening for incoming connections on port 53 and identify its PID.
+
+
+Create a file called /home/bob/process_pid and save the PID value in it.
+
+bob@ubuntu-host ~ ✖ sudo ss -ltunp
+Netid  State   Recv-Q  Send-Q   Local Address:Port    Peer Address:Port  Process                                                    
+udp    UNCONN  0       0        127.0.0.53%lo:53           0.0.0.0:*      users:(("systemd-resolve",pid=640,fd=13))                 
+udp    UNCONN  0       0              0.0.0.0:111          0.0.0.0:*      users:(("rpcbind",pid=618,fd=5),("systemd",pid=1,fd=28))  
+udp    UNCONN  0       0                 [::]:111             [::]:*      users:(("rpcbind",pid=618,fd=7),("systemd",pid=1,fd=30))  
+tcp    LISTEN  0       128            0.0.0.0:8080         0.0.0.0:*      users:(("ttyd",pid=1117,fd=12))                           
+tcp    LISTEN  0       128            0.0.0.0:22           0.0.0.0:*      users:(("sshd",pid=1114,fd=3))                            
+tcp    LISTEN  0       4096           0.0.0.0:111          0.0.0.0:*      users:(("rpcbind",pid=618,fd=4),("systemd",pid=1,fd=27))  
+tcp    LISTEN  0       4096     127.0.0.53%lo:53           0.0.0.0:*      users:(("systemd-resolve",pid=640,fd=14))                 
+tcp    LISTEN  0       128               [::]:22              [::]:*      users:(("sshd",pid=1114,fd=4))                            
+tcp    LISTEN  0       4096              [::]:111             [::]:*      users:(("rpcbind",pid=618,fd=6),("systemd",pid=1,fd=29)) 
+
+
+bob@ubuntu-host ~ ✖ sudo ss -ltunp | egrep 53 | egrep -o 'pid=[0-9]+' | head -1 
+pid=640
+
+bob@ubuntu-host ~ ➜  ^C
+
+bob@ubuntu-host ~ ✖ sudo ss -ltunp | egrep 53 | egrep -o 'pid=[0-9]+' | head -1 | cut -d= -f2
+640
+
+bob@ubuntu-host ~ ➜  sudo ss -ltunp | egrep 53 | egrep -o 'pid=[0-9]+' | head -1 | cut -d= -f2 > /home/bob/process_pid	   
+
+
+
+So, now, let's try to identify the process name based on the port it's listening on. Find out the process name that is listening for incoming connections on port 8080.
+
+
+Create a file called /home/bob/process and save the name of the process in it, for example sshd.
+
+bob@ubuntu-host ~ ✖ sudo ss -ltpun
+Netid  State   Recv-Q  Send-Q   Local Address:Port    Peer Address:Port  Process                                                    
+udp    UNCONN  0       0        127.0.0.53%lo:53           0.0.0.0:*      users:(("systemd-resolve",pid=640,fd=13))                 
+udp    UNCONN  0       0              0.0.0.0:111          0.0.0.0:*      users:(("rpcbind",pid=618,fd=5),("systemd",pid=1,fd=28))  
+udp    UNCONN  0       0                 [::]:111             [::]:*      users:(("rpcbind",pid=618,fd=7),("systemd",pid=1,fd=30))  
+tcp    LISTEN  0       128            0.0.0.0:8080         0.0.0.0:*      users:(("ttyd",pid=1117,fd=12))                           
+tcp    LISTEN  0       128            0.0.0.0:22           0.0.0.0:*      users:(("sshd",pid=1114,fd=3))                            
+tcp    LISTEN  0       4096           0.0.0.0:111          0.0.0.0:*      users:(("rpcbind",pid=618,fd=4),("systemd",pid=1,fd=27))  
+tcp    LISTEN  0       4096     127.0.0.53%lo:53           0.0.0.0:*      users:(("systemd-resolve",pid=640,fd=14))                 
+tcp    LISTEN  0       128               [::]:22              [::]:*      users:(("sshd",pid=1114,fd=4))                            
+tcp    LISTEN  0       4096              [::]:111             [::]:*      users:(("rpcbind",pid=618,fd=6),("systemd",pid=1,fd=29))
+
+bob@ubuntu-host ~ ➜  sudo ss -ltpun | egrep 8080 | egrep users | awk '{print $7}'
+users:(("ttyd",pid=1117,fd=12))
+
+sudo ss -ltpun | egrep 8080 | egrep -o '\("([^"]+)"' | cut -d'"' -f2
+
+sudo ss -ltpun | egrep 8080 | egrep -o '\("([^"]+)"' | cut -d'"' -f2 > /home/bob/process
+
+bob@ubuntu-host ~ ➜  cat /home/bob/process
+ttyd
+
+
+Configure static resolution so that example.com hostname resolves to IP address 8.8.8.8.
+
+bob@ubuntu-host ~ ✖ resolvectl status
+Global
+         Protocols: -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+  resolv.conf mode: foreign
+Current DNS Server: 10.96.0.10
+       DNS Servers: 10.96.0.10
+        DNS Domain: c.kk-lab-prod.internal cluster.local google.internal ncy2aquauvfhk2ce.svc.cluster.local svc.cluster.local
+                    us-central1-a.c.kk-lab-prod.internal
+
+Link 3 (eth0)
+Current Scopes: none
+     Protocols: -DefaultRoute +LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 4 (docker0)
+Current Scopes: none
+     Protocols: -DefaultRoute +LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+	 
+OR:
+
+bob@ubuntu-host ~ ✖ resolvectl dns
+Global: 10.96.0.10
+Link 3 (eth0):
+Link 4 (docker0):
+
+sudo vim /etc/hosts
+
+127.0.0.1       localhost
+::1     localhost ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+fe00::0 ip6-mcastprefix
+fe00::1 ip6-allnodes
+fe00::2 ip6-allrouters
+192.168.239.5   ubuntu-host
+8.8.8.8 example.com
+
+Check:
+
+bob@ubuntu-host ~ ➜  ping example.com
+PING example.com (8.8.8.8) 56(84) bytes of data.
+64 bytes from example.com (8.8.8.8): icmp_seq=1 ttl=114 time=0.534 ms
+64 bytes from example.com (8.8.8.8): icmp_seq=2 ttl=114 time=0.298 ms
+
+
+Use the ip command to add a temporary extra IP to the eth1 interface. You should add the CIDR notation of the IP: 192.168.9.3/24.
+
+
+To add ipv4 to the interface:
+>sudo ip addr add 192.168.9.3/24 dev eth1
+
+To validate eth1 (but still DONW - we do not requested to start so it is ok):
+
+bob@ubuntu-host ~ ➜  ip -c addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+3: eth0@if8879: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1410 qdisc noqueue state UP group default 
+    link/ether b6:e1:79:cb:d4:4f brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet 192.168.239.5/32 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::b4e1:79ff:fecb:d44f/64 scope link 
+       valid_lft forever preferred_lft forever
+4: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default 
+    link/ether 02:42:5e:e2:1c:36 brd ff:ff:ff:ff:ff:ff
+    inet 172.12.0.1/24 brd 172.12.0.255 scope global docker0
+       valid_lft forever preferred_lft forever
+5: eth1: <BROADCAST,NOARP> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether 7a:fe:81:d3:53:ee brd ff:ff:ff:ff:ff:ff
+    inet 192.168.9.3/24 scope global eth1
+       valid_lft forever preferred_lft forever
+6: enp6s0: <BROADCAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/ether 12:71:8c:bc:40:31 brd ff:ff:ff:ff:ff:ff
+    inet6 fe80::685d:e0ff:fe20:56d1/64 scope link 
+       valid_lft forever preferred_lft forever
+	   
+
+Create the following Netplan config in the file named 99-custom.yaml under the /etc/netplan directory.
+
+network:
+  version: 2
+  ethernets:
+    enp6s0:
+      dhcp4: false
+      dhcp6: false
+      addresses:
+        - 10.0.10.5/24
+
+bob@ubuntu-host ~ ➜  sudo vim /etc/netplan/99-custom.yaml	
+
+
+
+bob@ubuntu-host ~ ✖ ip link
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+3: eth0@if13750: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1410 qdisc noqueue state UP mode DEFAULT group default 
+    link/ether de:71:39:0c:b2:cd brd ff:ff:ff:ff:ff:ff link-netnsid 0
+4: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN mode DEFAULT group default 
+    link/ether 02:42:52:c0:47:98 brd ff:ff:ff:ff:ff:ff
+5: eth1: <BROADCAST,NOARP> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/ether 7a:fe:81:d3:53:ee brd ff:ff:ff:ff:ff:ff
+6: enp6s0: <BROADCAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/ether 12:71:8c:bc:40:31 brd ff:ff:ff:ff:ff:ff	
+	
+	
+bob@ubuntu-host ~ ✖ sudo chmod 644 /etc/netplan/99-custom.yaml OR better 600
+
+
+bob@ubuntu-host ~ ✖ sudo netplan generate
+
+** (generate:46853): WARNING **: 10:52:25.636: Permissions for /etc/netplan/99-custom.yaml are too open. Netplan configuration should NOT be accessible by others.
+
+bob@ubuntu-host ~ ➜  sudo networkctl reload
+
+bob@ubuntu-host ~ ➜  sudo networkctl reconfigure enp6s0
+
+
+bob@ubuntu-host ~ ➜  ip -c addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+3: eth0@if13750: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1410 qdisc noqueue state UP group default 
+    link/ether de:71:39:0c:b2:cd brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet 192.168.115.156/32 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::5cc8:e8ff:fea0:8be1/64 scope link 
+       valid_lft forever preferred_lft forever
+4: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default 
+    link/ether 02:42:52:c0:47:98 brd ff:ff:ff:ff:ff:ff
+    inet 172.12.0.1/24 brd 172.12.0.255 scope global docker0
+       valid_lft forever preferred_lft forever
+5: eth1: <BROADCAST,NOARP> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether 7a:fe:81:d3:53:ee brd ff:ff:ff:ff:ff:ff
+6: enp6s0: <BROADCAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/ether 12:71:8c:bc:40:31 brd ff:ff:ff:ff:ff:ff
+    inet 10.0.10.5/24 brd 10.0.10.255 scope global enp6s0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::d0d9:e7ff:fe40:b196/64 scope link 
+       valid_lft forever preferred_lft forever
+	   
+	   
+	   
+	   
+The interface named enp6s0 is configured with a permanent IP 10.0.10.5/24. Change this configuration so that the permanent IP is 192.168.10.10/24 instead of 10.0.10.5/24.
+
+
+Don't forget to apply these new settings to the interface 
+
+I did short term i think :
+
+bob@ubuntu-host ~ ✖ sudo ip addr add 192.168.10.10/24 dev enp6s0
+
+bob@ubuntu-host ~ ➜  ip -c addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+3: eth0@if13750: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1410 qdisc noqueue state UP group default 
+    link/ether de:71:39:0c:b2:cd brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet 192.168.115.156/32 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::5cc8:e8ff:fea0:8be1/64 scope link 
+       valid_lft forever preferred_lft forever
+4: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default 
+    link/ether 02:42:52:c0:47:98 brd ff:ff:ff:ff:ff:ff
+    inet 172.12.0.1/24 brd 172.12.0.255 scope global docker0
+       valid_lft forever preferred_lft forever
+5: eth1: <BROADCAST,NOARP> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether 7a:fe:81:d3:53:ee brd ff:ff:ff:ff:ff:ff
+6: enp6s0: <BROADCAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/ether 12:71:8c:bc:40:31 brd ff:ff:ff:ff:ff:ff
+    inet 10.0.10.5/24 brd 10.0.10.255 scope global enp6s0
+       valid_lft forever preferred_lft forever
+    inet 192.168.10.10/24 scope global enp6s0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::d0d9:e7ff:fe40:b196/64 scope link 
+       valid_lft forever preferred_lft forever
+	   
+	   
+
+sudo ip addr delete 10.0.10.5/24 dev enp6s0 
+
+bob@ubuntu-host ~ ✖ sudo ip addr delete 10.0.10.5/24 dev enp6s0
+
+bob@ubuntu-host ~ ➜  ip -c addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+3: eth0@if13750: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1410 qdisc noqueue state UP group default 
+    link/ether de:71:39:0c:b2:cd brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet 192.168.115.156/32 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::5cc8:e8ff:fea0:8be1/64 scope link 
+       valid_lft forever preferred_lft forever
+4: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default 
+    link/ether 02:42:52:c0:47:98 brd ff:ff:ff:ff:ff:ff
+    inet 172.12.0.1/24 brd 172.12.0.255 scope global docker0
+       valid_lft forever preferred_lft forever
+5: eth1: <BROADCAST,NOARP> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether 7a:fe:81:d3:53:ee brd ff:ff:ff:ff:ff:ff
+6: enp6s0: <BROADCAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/ether 12:71:8c:bc:40:31 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.10.10/24 scope global enp6s0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::d0d9:e7ff:fe40:b196/64 scope link 
+       valid_lft forever preferred_lft forever
+	   
+	   
+	   
+Check the network route of this system and store the output in the /home/bob/route.txt file.
+
+
+bob@ubuntu-host ~ ✖ ip route
+default via 169.254.1.1 dev eth0 
+169.254.1.1 dev eth0 scope link 
+172.12.0.0/24 dev docker0 proto kernel scope link src 172.12.0.1 linkdown 
+192.168.10.0/24 dev enp6s0 proto kernel scope link src 192.168.10.10 
+
+bob@ubuntu-host ~ ➜  ip route > /home/bob/route.txt
+
+
+Get the list of all incoming open ports on this system and store the output in the /home/bob/incoming.txt file.
+
+(can use: sudo netstat -tulpn)
+
+i have tried:
+
+bob@ubuntu-host ~ ✖ sudo ss -ltunp
+Netid  State   Recv-Q  Send-Q   Local Address:Port    Peer Address:Port  Process                                                    
+udp    UNCONN  0       0        127.0.0.53%lo:53           0.0.0.0:*      users:(("systemd-resolve",pid=23984,fd=13))               
+udp    UNCONN  0       0              0.0.0.0:111          0.0.0.0:*      users:(("rpcbind",pid=623,fd=5),("systemd",pid=1,fd=83))  
+udp    UNCONN  0       0                 [::]:111             [::]:*      users:(("rpcbind",pid=623,fd=7),("systemd",pid=1,fd=85))  
+tcp    LISTEN  0       128            0.0.0.0:8080         0.0.0.0:*      users:(("ttyd",pid=1115,fd=12))                           
+tcp    LISTEN  0       128            0.0.0.0:22           0.0.0.0:*      users:(("sshd",pid=2220,fd=3))                            
+tcp    LISTEN  0       4096           0.0.0.0:111          0.0.0.0:*      users:(("rpcbind",pid=623,fd=4),("systemd",pid=1,fd=82))  
+tcp    LISTEN  0       4096     127.0.0.53%lo:53           0.0.0.0:*      users:(("systemd-resolve",pid=23984,fd=14))               
+tcp    LISTEN  0       128               [::]:22              [::]:*      users:(("sshd",pid=2220,fd=4))                            
+tcp    LISTEN  0       4096              [::]:111             [::]:*      users:(("rpcbind",pid=623,fd=6),("systemd",pid=1,fd=84))
+
+bob@ubuntu-host ~ ➜  sudo ss -ltnup | awk 'NR>1 {print $5}' | awk -F: '{print $NF}' | sort -n | uniq 
+22
+53
+111
+8080
+
+Solution:
+
+bob@ubuntu-host ~ ➜  sudo netstat -tulpn | grep LISTEN
+tcp        0      0 0.0.0.0:8080            0.0.0.0:*               LISTEN      1115/ttyd           
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      2220/sshd: /usr/sbi 
+tcp        0      0 0.0.0.0:111             0.0.0.0:*               LISTEN      1/systemd           
+tcp        0      0 127.0.0.53:53           0.0.0.0:*               LISTEN      23984/systemd-resol 
+tcp6       0      0 :::22                   :::*                    LISTEN      2220/sshd: /usr/sbi 
+tcp6       0      0 :::111                  :::*                    LISTEN      1/systemd           
+
+sudo netstat -tulpn | grep LISTEN > /home/bob/incoming.txt
+
+bob@ubuntu-host ~ ✖ sudo netstat -tulpn | grep LISTEN > /home/bob/incoming.txt
+
+bob@ubuntu-host ~ ➜  cat /home/bob/incoming.txt
+tcp        0      0 0.0.0.0:8080            0.0.0.0:*               LISTEN      1115/ttyd           
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      2220/sshd: /usr/sbi 
+tcp        0      0 0.0.0.0:111             0.0.0.0:*               LISTEN      1/systemd           
+tcp        0      0 127.0.0.53:53           0.0.0.0:*               LISTEN      23984/systemd-resol 
+tcp6       0      0 :::22                   :::*                    LISTEN      2220/sshd: /usr/sbi 
+tcp6       0      0 :::111                  :::*                    LISTEN      1/systemd 
+
+
+Add a global DNS resolver (one that applies to all network interfaces). Set it to the following IP: 8.8.8.8.
+
+To see DNS resolves:
+>resolvectl status
+
+To do global system configuration for DNS servers:
+need to modify /etc/systemd/resolved.conf file 	   
+>sudo vim /etc/systemd/resolved.conf
+
+
+DNS=8.8.8.8
+
+Restart dns daemon to take the changes:
+>sudo systemctl restart systemd-resolved.service
+
+Check the status:
+>resolvectl status
+
+bob@ubuntu-host ~ ➜  resolvectl status
+Global
+       Protocols: -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+resolv.conf mode: foreign
+     DNS Servers: 8.8.8.8
+
+Link 3 (eth0)
+Current Scopes: none
+     Protocols: -DefaultRoute +LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 4 (docker0)
+Current Scopes: none
+     Protocols: -DefaultRoute +LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 5 (eth1)
+Current Scopes: none
+     Protocols: -DefaultRoute +LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+
+Link 6 (enp6s0)
+Current Scopes: none
+     Protocols: -DefaultRoute +LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
