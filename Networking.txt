@@ -1,0 +1,196 @@
+////////////////Networking ///////////////////
+
+Configure IPv4 and IPv6 networking and hostname resolution
+
+>ip link - to see internet interfaces (network devices)
+
+>ip address - to see ip addresses configured to these INTERFACES 
+>ip ddr OR ip a  - the same
+
+to add color to the output:
+>ip -c addr  
+
+To bring internet interface UP :
+>sudo ip link set dev enp0s8 up  - with link set device enp0s8 to UP
+
+To add ipv4 to the interface:
+>sudo ip addr add 10.0.0.40/24 dev enp0s8
+>sudo set ip addr add fe80::5054:ff:fe1f:8050/64 dev enp0s8   - to set IPv6 ip address
+
+Remove ip address:
+sudo ip addr delete fe80::5054:ff:fe1f:8050/64 dev enp0s8
+
+Down the interface:
+>sudo ip link set dev enp9s8 down 
+
+
+Confugure long term network interfaces:
+
+>sudo netplan get  - to see the tree ierarhy of configurations
+
+>ls /etc/netplan
+and open a file which exist there
+>sudo cat /etc/netplan/50-cloud-init.yaml
+
+network:
+  ethernets:
+       enp0s3:
+	       dhcp4: true
+		   
+  version: 2
+
+If we want configure new device a)we need to run >ip link and check devices names 2)create new file like the current opened and modify it
+
+>sudo vim /etc/netplan/00-mysettings.yaml 
+
+network:
+  ethernets:
+       enp0s8:
+	       dhcp4: false  - we can set to false if we do not want dhcp server do for us configuration (allocation) we want to mannually here
+		   dhcp6: false
+		   addresses:
+		     - 10.0.0.9/24    - we add ipv4 address
+			 - fe80::5054:ff:fe1f:abcd/64  - we add ipv6 adress
+	version: 2
+
+>sudo netplan try - will check if setting are good and will revert(after count down time - 2 minutes) if we not confirm.So in case we created wrong configuration it will through us from the server and after 2 minutes we will be able to connect again
+Enter to Confirm
+Cntrl+C - cancel configuration 
+
+>sudo netplan try --timeout 30 - changes will be reverted after 30 seconds (sudo netplan try) cause if something wrong you will brake the network
+
+>sudo netplan apply - will do the changes at the moment and better to use 
+
+>sudo chmod 600 /etc/netplan/00-mysettings.yaml  - to except the WARNINGS durint a plan
+
+
+Now we can check settings for devices:
+>ip -c addr  (or ip -c a)  -we may see new ip addresses for the interface AND if the interface in UP state or DOWN (should be UP)
+
+>sudo netplan get  - we can see now our configuration and reboot will not destroy it
+
+Additional network settings which we can to add to the our file  - ROUTING:
+
+sudo vim /etc/netplan/00-mysettings.yaml 
+
+network:
+  ethernets:
+       enp0s8:
+	       dhcp4: false  - we can set to false if we do not want dhcp server do for us configuration (allocation) we want to mannually here
+		   dhcp6: false
+		   addresses:
+		     - 10.0.0.9/24    - we add ipv4 address
+			 - fe80::5054:ff:fe1f:abcd/64  - we add ipv6 adress
+		   nameservers:
+             addresses:
+               - 8.8.8.8 
+               - 8.8.4.4 
+           routes:
+             - to: 192.168.0/24
+               via: 10.0.0.100
+             - to: default
+               via: 10.0.0.1 			 
+	version: 2
+	
+When we done with configuration run:
+>sudo netplan try
+>ip route - check the routes
+
+	
+Those two lines define the DNS servers your system will use for name resolution. They tell Netplan to configure the interface to use 8.8.8.8 and 8.8.4.4 as DNS servers.	
+Netplan writes these DNS servers into the backend resolver. You can verify with:
+>resolvectl status
+or check /etc/resolv.conf depending on your system. 
+
+
+This means:
+
+The destination network is 192.168.0.0/24  
+(all IPs from 192.168.0.1 to 192.168.0.254)
+
+To reach that network, your machine should send packets to the gateway 10.0.0.100.
+
+In other words:
+
+“If you want to reach any device in 192.168.0.x, forward the traffic to 10.0.0.100.”
+
+This is a static route—useful when that network is behind another router.
+
+- to: default
+  via: 10.0.0.1
+  
+  is defines the default gateway.
+
+to: default means “all traffic that doesn’t match any other route.”
+
+via: 10.0.0.1 means “send it to 10.0.0.1.”
+
+This is your internet gateway.
+
+So:
+
+“For everything else (web browsing, external networks), send traffic to 10.0.0.1.”
+
+
+Destination	How traffic is routed
+192.168.0.0/24	Forward to 10.0.0.100
+Anything else	Forward to 10.0.0.1 (default route)
+
+When we done with configuration run:
+>sudo netplan try
+>ip route - check the routes (but will not show DNS resolves - configuration)
+
+To get the output what we have configured:
+defautl via 10.0.01 dev enp0s8 proto static
+192.168.0.0/24 via 10.0.0.100 dev enp0s8 proto static 
+
+To see DNS resolves:
+>resolvectl status
+
+emp0s8:
+Current DNS Server: 8.8.4.4
+       DNS Server:  8.8.4.4 8.8.8.8 
+	   
+To do global system configuration for DNS servers:
+need to modify /etc/systemd/resolved.conf file 	   
+>sudo vim /etc/systemd/resolved.conf
+
+DNS=1.1.1.1 9.9.9.9   - example to add DNS servers
+
+Restart dns daemon to take the changes:
+>sudo systemctl restart systemd-resolved.service
+
+Check the status:
+>resolvectl status
+
+We can see Global applied DNS servers:
+Global:
+   DNS Servers: 1.1.1.1 9.9.9.9
+   
+>resolvctl dns - to show only DNS status 
+
+////////////////////Hostname for the server ////////
+To do modification in this file:
+>sudo vim /etc/hosts
+
+127.0.123.123 dbserver   - will resolve ip to the db server name
+
+
+>ping dbserver  - now system knows to resolve name to ip and do a ping
+
+Modify a file to have something like a web address:
+1.2.3.4  example.com   - similar we can do to test our products localy 
+
+>ping example.com  - test it 
+
+
+
+>man netplan  - check the options to the command
+
+OR more files with examples with configurations:
+
+>ls /usr/share/doc - includes additional documentation for software and examples
+>ls /usr/share/doc/netplan/examples - files with examples of configurations (like dchp or static network settings file exaples)
+
+
+
