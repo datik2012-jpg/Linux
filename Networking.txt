@@ -764,3 +764,18 @@ Current Scopes: none
 Link 6 (enp6s0)
 Current Scopes: none
      Protocols: -DefaultRoute +LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported
+	 
+	 
+/////////////////Bridge and Bonding /////////
+
+
+Bonding - when 2  enterfaces cards connected to the same network ( good for availability) if one of them fails second still working
+
+Bonding mode 0 to 6
+Mode 0 is default - Round Robin
+     1 is active-backup   - uses only one interface and second keeps inactive only use the second in case of issue
+	 2 is XOR - every transfer when start to use interface will use all packets to send with the same interface depends on the target mentioned jnt he packets
+	 3 is broadcast - all data to all interfaces 
+     4 is IEEE 802.3ad - can help increase network transfer rates 
+	 5 is adaptive transmit load balancing  - will send the data to the interface which less busy 
+	 6 is adaptive load balancing - trying to load balance both INCOMING and OUTCOMING trafics between both interfaces
