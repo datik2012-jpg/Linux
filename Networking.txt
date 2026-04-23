@@ -779,3 +779,9 @@ Mode 0 is default - Round Robin
      4 is IEEE 802.3ad - can help increase network transfer rates 
 	 5 is adaptive transmit load balancing  - will send the data to the interface which less busy 
 	 6 is adaptive load balancing - trying to load balance both INCOMING and OUTCOMING trafics between both interfaces
+	 
+	 
+	 
+Bridge - connect two ore more networks together and act like one network
+Bond - two or more connection to the network 
+	 
