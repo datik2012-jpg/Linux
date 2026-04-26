@@ -784,4 +784,579 @@ Mode 0 is default - Round Robin
 	 
 Bridge - connect two ore more networks together and act like one network
 Bond - two or more connection to the network 
+
+# Official examples directory
+ls /usr/share/doc/netplan/examples
+# Contains: dhcp.yaml, static.yaml, bonding.yaml, bridge.yaml etc.
+ 
+# All software documentation
+ls /usr/share/doc
+
+>cat /usr/share/doc/netplan/examples/bridge.yaml - check the yaml bridge content
+
+Copy to the netplan dir and modify there:
+>cp /usr/share/doc/netplan/examples/bridge.yaml /etc/netplan/99-bridge.yaml
+>suod chmod 600 /etc/netplan/99-bridge.yaml   - to avoid permissions issues
+
+To chech which network interfaces do we have ,so we can see their names and user for the bridge configuration
+
+>ip -c link
+
+anp10s0  - do not use default interface cause will cause for ssh your fail
+anp11s0
+anp12s0
+
+Modify the bridge.yaml:
+
+network:
+  version: 2
+       render: networkd
+	   ethernets:
+          enp0s8: 
+		    dhcp4: no 
+          enp0s9:
+            dhcp4: no		  
+        bridges:
+          br0:
+            dhcp4: yes
+            interfaces:
+              - enp0s8
+              - enp0s9			  
+		   
 	 
+>sudo netplan try  -  try to deploy this configuration
+
+Ispect interfaces again:
+
+>ip -c link 
+We will see enp0s8 and enp0s9 - are in UP state and both have in the line mentioned : mster br0 - which means these interfaces belongs to the BRIDGE br0
+As well br0 - is listed as interface list.And cause we have mention YES for DHCP so we can check the ip address of this bridge interface
+
+>ip -c addr
+
+br0  - will show something like 10.0.4.15/24
+
+Check the network routes:
+>ip route 
+
+something like:
+10.0.0.3  via 10.0.4.15/24
+10.0.04 via 10.0.4.15/24
+
+Now we want configure BOND network setting - so let's remove BRIDGE YAML:
+
+>sudo rm /etc/netplan/99-bridge.yaml
+
+>sudo ip link delete br0 - delete bridge inteface + better to do REBOOT for the server to make sure all network setting been rempoved
+
+///////////////////////////BOND ///////////////////////
+
+
+If your goal is reliability or speed, choose bonding.
+If your goal is connecting multiple interfaces or VMs into one LAN, choose bridging.
+
+Bonding combines multiple network interfaces into one for redundancy or throughput, while bridging connects interfaces so devices on different segments behave as if they’re on the same Layer‑2 network.
+
+What each one does
+Bond (Link Aggregation / NIC Bonding) — Multiple physical NICs are merged into one logical interface. The goals are redundancy, failover, and sometimes higher throughput, depending on the bonding mode. 
+
+Bridge (Layer‑2 Switch) — A virtual switch that connects two or more interfaces so all devices appear to be on the same LAN segment. No routing; it’s pure Layer‑2 forwarding. 
+
+Copy  example bond to the netplan dir:
+>sudo cp /usr/share/doc/netplan/examples/bonding.yaml /etc/netplan/99-bond.yaml
+
+>sudo chmod 600 /etc/netplan/99-bond.yaml
+
+>sudo vim /etc/netplan/99-bond.yaml
+
+network:
+  version: 2
+  renderer: networkd
+
+  ethernets:
+    enp0s8:
+	  dhcp: no
+    enp0s9:
+	  dhcp: no
+
+  bonds:
+    bond0:
+      dhcp4: yes
+      interfaces:
+        - enp0s8
+        - enp0s9
+      parameters:
+        mode: active-backup
+        primary: enp0s8
+        mii-monitor-interval: 100
+		
+		
+Note:
+1 — active backup
+Only one interface is active; others are standby
+
+Pros: Best for redundancy; no switch config needed
+
+Cons: No load balancing	
+
+Add mode - and their descritpions (Claude please do)	
+
+
+>man netplan - to see the options for BONDING  /bonding
+
+>sudo netplan try  -  will fail cause only APPLY works for bond
+
+
+>sudo netplan apply 
+
+>ip -c addr - to check ip settings we can see:
+
+bond0.......UP...
+  inet 10.0.3.16/24  - is ip
+  
+  
+Ass well we can see enp0s8 master bond0 and enp0s8 master bond0
+
+
+As well we can check special directory now:
+
+>cat /proc/net/bonding/bond0 
+
+>ip -c link - we can see as well bond0 is listed as interbet interface!!!!!
+
+So we can UP and DOWN the bond or bridge like internet interface,change IP  - but it will be lost after reboot if we use this commands:
+
+>sudo ip link set dev bond0 down
+>sudo ip link set dev bond0 10.0.0.9/24 
+
+Note:
+
+How to quickly detect which system your server uses
+Check if Netplan is active: ls /etc/netplan
+Check if systemd‑networkd is active: networkctl status
+Check if ifupdown is active: grep -R "bond" /etc/network
+Check for Red Hat style: ls /etc/sysconfig/network-scripts/
+
+
+/////////////////////////Configure Packet Filtering (Firewall) /////////
+
+UFW - Uncomplicated Firewall by default is disabled
+
+check the status of UFW:
+>sudo ufw status
+inactive
+
+Before do any change ALLOW at least SSH to connect to the machine - otherwise you will be blocked outside
+cause by default ACTIVE ufw will block all coming data !!!
+
+Allow incoming trafic to the port 22:
+
+>sudo ufw allow 22  - will allow connections to TCP and UDP protocols  (ssh uses tcp)
+
+>sudo ufw allow 22/tcp - allow only for tcp  (or sudo ufw allow udp/22 - only allow 22 port open for udp)
+
+>sudo ufw enable   - enable UFW
+
+>sudo ufw status verbose - more datailed status for UFW 
+will show detailed configuration
+
+
+>ss -tn - to check active coonections at the momement to Linux machine.From which ip is connected at the moment 
+
+
+>sudo ufw allow from 10.0.0.1 to 22/tcp  - allow connection from specific port 
+>sudo ufw allow from 10.0.0.2 to any port - allow connection from specific ip to any port 
+
+
+To show the UFW rules ordered by the ORDER WHICH THEY PROCESSES
+>sudo ufw status numbered 
+
+To    Action     From
+22    allow in   anywhere
+22    allow in   10.0.0.1
+22(v6) allow in  anywhere(v6)      v6 is IPV6
+
+
+To modify or remove the rule from ufw bu ID:
+
+>sudo ufw delete 1   - where 1 is ID of first rule in "numbered"
+
+
+How to delete the rule wich was added as :sudo ufw allow 22 - which added both ipv4 and ipv6!! ?
+>sudo ufw delete allow 22
+
+>sudo ufw status  - check the satatus again:
+
+22  allow 10.0.0.1   - only one left 
+
+To specify a range of ports:
+
+>sudo ufw allow from 10.0.0.2/24 to any port 22  - allow ip range to specific port 
+>sudo ufw allow from 10.0.0.2/24 - allow from IP range to ANY port
+
+
+Except from  - can be an issue when we run like this:
+
+>sudo ufw deny from 10.0.0.37 
+
+>sudo ufw status numbered
+
+cause our IP is part of the range before which we fully allow.In order we can see it ALLOWED before it DENIED cause UFW process the rules from TOP to BOTTOM
+
+Anywhere   ALLOW   10.0.0.0/24   - first rull will ALLOW and second rule will not DENY it cause the order!!!
+Anywhere   DENY IN 10.0.0.37
+
+>sudo ufw delete 2  - we delete the DENY rule
+
+We want to add DENY to the BE FIRST  open >ufw --help !!!
+
+>sudo ufw insert 1 deny from 10.0.0.37 - will add DENY to be first by ID in the ORDER
+
+>sudo ufw status numbered - now deny will be first in order and will block acess from the specific IP : 10.0.0.37
+
+Anywhere   DENY IN  10.0.0.37
+Anywhere   ALLOW IN 10.0.0.0/24    
+
+
+
+Server can have multiple cards to process the trafic TO from different networks : internet, office and etc 
+We can apply the Firewall rules to specific internet interface!!!
+
+>ip link  - to see the interfaces names configured
+
+>ping -c 4 8.8.8.8   - ping 4 times Google DNS
+
+Lets block OUTPUT trafic to Google DNS:
+
+>sudo ufw deny out on enp0s3 to 8.8.8.8      (we specify network interface name)
+
+>ping -c 4 8.8.8.8  - will stay OUT of responce cause we block OUT traffic 
+
+>sudo ufw status numbered  - we can see now we BLOCK out trafic to 8.8.8.8
+
+
+More complex UFW configuration with specific ports and imterfaces allow and deny:
+
+>ip a - to check the Linux machine IP address 
+
+>sudo ufw allow in on enp0s3 from 10.0.0.192 to 10.0.0.100    - but we can not allow 80/tcp ,we need fifferent approach
+
+>sudo ufw allow in on enp0s3 from 10.0.0.192 to 10.0.0.100 proto tcp 
+
+Allow OUTCOMING traffic back now that 100 server to our machine:
+
+>sudo ufw allow out on enp0s3 from 10.0.0.100 to 10.0.0.192 proto tcp  
+
+
+>sudo ufw status numbered  - we can see we allowed IN trafic FROM to specific IP and allowed back OUT traffic from that IP to our linux
+
+//////////////////////LAB ////////////////
+
+
+By default, Uncomplicated Firewall (ufw) is disabled. So, do the following before proceeding into the lab.
+
+Turn on ufw
+All traffic is blocked by default, so we must allow SSH on port 22 so the lab won't be broken.
+
+bob@ubuntu-host ~ ✖ sudo ufw enable
+Firewall is active and enabled on system startup
+
+bob@ubuntu-host ~ ✖ sudo ufw status numbered
+Status: active
+
+Allow for TCP and UDP for everywhere:
+
+bob@ubuntu-host ~ ✖ sudo ufw allow 22
+Rule added
+Rule added (v6)
+
+bob@ubuntu-host ~ ✖ sudo ufw status numbered
+Status: active
+
+     To                         Action      From
+     --                         ------      ----
+[ 1] 22                         ALLOW IN    Anywhere                  
+[ 2] 22 (v6)                    ALLOW IN    Anywhere (v6)   
+
+
+Set up a firewall rule to allow incoming traffic to this machine on port 80.
+
+bob@ubuntu-host ~ ✖ sudo ufw status numbered
+Status: active
+
+     To                         Action      From
+     --                         ------      ----
+[ 1] 22                         ALLOW IN    Anywhere                  
+[ 2] 22 (v6)                    ALLOW IN    Anywhere (v6) 
+
+bob@ubuntu-host ~ ✖ sudo ufw allow 80/tcp
+Rule added
+Rule added (v6)
+
+Validation:
+
+bob@ubuntu-host ~ ✖ sudo ufw status numbered
+Status: active
+
+     To                         Action      From
+     --                         ------      ----
+[ 1] 22                         ALLOW IN    Anywhere                  
+[ 2] 80/tcp                     ALLOW IN    Anywhere                  
+[ 3] 22 (v6)                    ALLOW IN    Anywhere (v6)             
+[ 4] 80/tcp (v6)                ALLOW IN    Anywhere (v6)   
+
+
+
+Set up a firewall rule to allow incoming traffic to this machine on port 53, through the TCP protocol.
+
+bob@ubuntu-host ~ ✖ sudo ufw allow 53/tcp
+Rule added
+Rule added (v6)
+
+bob@ubuntu-host ~ ➜  sudo ufw status numbered
+Status: active
+
+     To                         Action      From
+     --                         ------      ----
+[ 1] 22                         ALLOW IN    Anywhere                  
+[ 2] 80/tcp                     ALLOW IN    Anywhere                  
+[ 3] 53/tcp                     ALLOW IN    Anywhere                  
+[ 4] 22 (v6)                    ALLOW IN    Anywhere (v6)             
+[ 5] 80/tcp (v6)                ALLOW IN    Anywhere (v6)             
+[ 6] 53/tcp (v6)                ALLOW IN    Anywhere (v6) 
+
+
+Set up a firewall rule to deny incoming traffic to this machine on port 443, through the TCP protocol.
+
+ob@ubuntu-host ~ ✖ ufw --help
+
+Usage: ufw COMMAND
+
+Commands:
+ enable                          enables the firewall
+ disable                         disables the firewall
+ default ARG                     set default policy
+ logging LEVEL                   set logging to LEVEL
+ allow ARGS                      add allow rule
+ deny ARGS                       add deny rule
+ reject ARGS                     add reject rule
+ limit ARGS                      add limit rule
+ delete RULE|NUM                 delete RULE
+ insert NUM RULE                 insert RULE at NUM
+ prepend RULE                    prepend RULE
+ route RULE                      add route RULE
+ route delete RULE|NUM           delete route RULE
+ route insert NUM RULE           insert route RULE at NUM
+ reload                          reload firewall
+ reset                           reset firewall
+ status                          show firewall status
+ status numbered                 show firewall status as numbered list of RULES
+ status verbose                  show verbose firewall status
+ show ARG                        show firewall report
+ version                         display version information
+
+Application profile commands:
+ app list                        list application profiles
+ app info PROFILE                show information on PROFILE
+ app update PROFILE              update PROFILE
+ app default ARG                 set default application policy
+ 
+ bob@ubuntu-host ~ ➜  sudo ufw deny 443/tcp
+Rule added
+Rule added (v6)
+
+bob@ubuntu-host ~ ✖ sudo ufw status numbered
+Status: active
+
+     To                         Action      From
+     --                         ------      ----
+[ 1] 22                         ALLOW IN    Anywhere                  
+[ 2] 80/tcp                     ALLOW IN    Anywhere                  
+[ 3] 53/tcp                     ALLOW IN    Anywhere                  
+[ 4] 443/tcp                    DENY IN     Anywhere                  
+[ 5] 22 (v6)                    ALLOW IN    Anywhere (v6)             
+[ 6] 80/tcp (v6)                ALLOW IN    Anywhere (v6)             
+[ 7] 53/tcp (v6)                ALLOW IN    Anywhere (v6)             
+[ 8] 443/tcp (v6)               DENY IN     Anywhere (v6)   
+
+Delete a firewall rule denying incoming traffic to this machine on port 443, through the TCP protocol (That is created in previous step).
+
+bob@ubuntu-host ~ ✖ sudo ufw status numbered
+Status: active
+
+     To                         Action      From
+     --                         ------      ----
+[ 1] 22                         ALLOW IN    Anywhere                  
+[ 2] 80/tcp                     ALLOW IN    Anywhere                  
+[ 3] 53/tcp                     ALLOW IN    Anywhere                  
+[ 4] 443/tcp                    DENY IN     Anywhere                  
+[ 5] 22 (v6)                    ALLOW IN    Anywhere (v6)             
+[ 6] 80/tcp (v6)                ALLOW IN    Anywhere (v6)             
+[ 7] 53/tcp (v6)                ALLOW IN    Anywhere (v6)             
+
+
+bob@ubuntu-host ~ ➜  ^C
+
+bob@ubuntu-host ~ ✖ ^C
+
+bob@ubuntu-host ~ ✖ sudo ufw delete 4
+Deleting:
+ deny 443/tcp
+Proceed with operation (y|n)? y
+Rule deleted
+
+bob@ubuntu-host ~ ➜  sudo ufw status numbered
+Status: active
+
+     To                         Action      From
+     --                         ------      ----
+[ 1] 22                         ALLOW IN    Anywhere                  
+[ 2] 80/tcp                     ALLOW IN    Anywhere                  
+[ 3] 53/tcp                     ALLOW IN    Anywhere                  
+[ 4] 22 (v6)                    ALLOW IN    Anywhere (v6)             
+[ 5] 80/tcp (v6)                ALLOW IN    Anywhere (v6)             
+[ 6] 53/tcp (v6)                ALLOW IN    Anywhere (v6) 
+
+Rules that we add are numbered. What is the rule with number 5?
+
+it was 22 port rule
+
+Allow all traffic that is coming from the following IP address 207.45.232.181.
+
+
+bob@ubuntu-host ~ ➜  sudo ufw status numbered
+Status: active
+
+     To                         Action      From
+     --                         ------      ----
+[ 1] 22                         ALLOW IN    Anywhere                  
+[ 2] 80/tcp                     ALLOW IN    Anywhere                  
+[ 3] 53/tcp                     ALLOW IN    Anywhere                  
+[ 4] 3306                       ALLOW IN    10.0.0.0/24               
+[ 5] Anywhere                   ALLOW IN    207.45.232.181            
+[ 6] 22 (v6)                    ALLOW IN    Anywhere (v6)             
+[ 7] 80/tcp (v6)                ALLOW IN    Anywhere (v6)             
+[ 8] 53/tcp (v6)                ALLOW IN    Anywhere (v6)
+
+
+Allow all traffic coming from any IP in this network range: 10.11.12.0 to 10.11.12.255 (i.e., 10.11.12.0/24). Add the required rule.
+
+bob@ubuntu-host ~ ✖ sudo ufw allow from 10.11.12.0/24 to 10.11.12.255
+Rule added
+
+bob@ubuntu-host ~ ➜  sudo ufw status numbered
+Status: active
+
+     To                         Action      From
+     --                         ------      ----
+[ 1] 22                         ALLOW IN    Anywhere                  
+[ 2] 80/tcp                     ALLOW IN    Anywhere                  
+[ 3] 53/tcp                     ALLOW IN    Anywhere                  
+[ 4] 3306                       ALLOW IN    10.0.0.0/24               
+[ 5] Anywhere                   ALLOW IN    207.45.232.181            
+[ 6] 10.11.12.255               ALLOW IN    10.11.12.0                
+[ 7] 10.11.12.255               ALLOW IN    10.11.12.0/24             
+[ 8] 22 (v6)                    ALLOW IN    Anywhere (v6)             
+[ 9] 80/tcp (v6)                ALLOW IN    Anywhere (v6)             
+[10] 53/tcp (v6)                ALLOW IN    Anywhere (v6) 
+
+
+
+A rule allow from 192.168.0.4 to any port 22 was added to the firewall, which is the port configured to rule one.
+
+Answer:22
+
+cause:
+bob@ubuntu-host ~ ➜  sudo ufw status numbered
+Status: active
+
+     To                         Action      From
+     --                         ------      ----
+[ 1] 22                         ALLOW IN    Anywhere                  
+[ 2] 80/tcp                     ALLOW IN    Anywhere                  
+[ 3] 53/tcp                     ALLOW IN    Anywhere                  
+[ 4] 3306                       ALLOW IN    10.0.0.0/24               
+[ 5] Anywhere                   ALLOW IN    207.45.232.181            
+[ 6] 10.11.12.255               ALLOW IN    10.11.12.0                
+[ 7] 10.11.12.255               ALLOW IN    10.11.12.0/24             
+[ 8] 22 (v6)                    ALLOW IN    Anywhere (v6)             
+[ 9] 80/tcp (v6)                ALLOW IN    Anywhere (v6)             
+[10] 53/tcp (v6)                ALLOW IN    Anywhere (v6)
+
+
+
+There's a firewall rule that denies any traffic coming from the 10.0.0.19 IP address. But this rule is in an incorrect spot (after an allow rule for the 10.0.0.0/24 range). So traffic is never denied because the rule is never matched. Correct this mistake.
+
+
+bob@ubuntu-host ~ ✖ sudo ufw status numbered
+Status: active
+
+     To                         Action      From
+     --                         ------      ----
+[ 1] 22                         ALLOW IN    192.168.0.4               
+[ 2] 22                         ALLOW IN    Anywhere                  
+[ 3] 80/tcp                     ALLOW IN    Anywhere                  
+[ 4] 53/tcp                     ALLOW IN    Anywhere                  
+[ 5] 3306                       ALLOW IN    10.0.0.0/24               
+[ 6] Anywhere                   ALLOW IN    207.45.232.181            
+[ 7] 10.11.12.255               ALLOW IN    10.11.12.0                
+[ 8] 10.11.12.255               ALLOW IN    10.11.12.0/24             
+[ 9] Anywhere                   DENY IN     10.0.0.19                 
+[10] 22 (v6)                    ALLOW IN    Anywhere (v6)             
+[11] 80/tcp (v6)                ALLOW IN    Anywhere (v6)             
+[12] 53/tcp (v6)                ALLOW IN    Anywhere (v6)             
+
+
+bob@ubuntu-host ~ ➜  ^C
+
+bob@ubuntu-host ~ ✖ sudo ufw delete 9
+Deleting:
+ deny from 10.0.0.19
+Proceed with operation (y|n)? y
+Rule deleted
+
+bob@ubuntu-host ~ ➜  sudo ufw status numbered
+Status: active
+
+     To                         Action      From
+     --                         ------      ----
+[ 1] 22                         ALLOW IN    192.168.0.4               
+[ 2] 22                         ALLOW IN    Anywhere                  
+[ 3] 80/tcp                     ALLOW IN    Anywhere                  
+[ 4] 53/tcp                     ALLOW IN    Anywhere                  
+[ 5] 3306                       ALLOW IN    10.0.0.0/24               
+[ 6] Anywhere                   ALLOW IN    207.45.232.181            
+[ 7] 10.11.12.255               ALLOW IN    10.11.12.0                
+[ 8] 10.11.12.255               ALLOW IN    10.11.12.0/24             
+[ 9] 22 (v6)                    ALLOW IN    Anywhere (v6)             
+[10] 80/tcp (v6)                ALLOW IN    Anywhere (v6)             
+[11] 53/tcp (v6)                ALLOW IN    Anywhere (v6)             
+
+
+bob@ubuntu-host ~ ➜  ^C
+
+bob@ubuntu-host ~ ✖ sudo insert 1 deny from 10.0.0.19
+sudo: insert: command not found
+
+bob@ubuntu-host ~ ✖ ^C
+
+bob@ubuntu-host ~ ✖ sudo ufw insert 1 deny from 10.0.0.19
+Rule inserted
+
+bob@ubuntu-host ~ ➜  sudo ufw status numbered
+Status: active
+
+     To                         Action      From
+     --                         ------      ----
+[ 1] Anywhere                   DENY IN     10.0.0.19                 
+[ 2] 22                         ALLOW IN    192.168.0.4               
+[ 3] 22                         ALLOW IN    Anywhere                  
+[ 4] 80/tcp                     ALLOW IN    Anywhere                  
+[ 5] 53/tcp                     ALLOW IN    Anywhere                  
+[ 6] 3306                       ALLOW IN    10.0.0.0/24               
+[ 7] Anywhere                   ALLOW IN    207.45.232.181            
+[ 8] 10.11.12.255               ALLOW IN    10.11.12.0                
+[ 9] 10.11.12.255               ALLOW IN    10.11.12.0/24             
+[10] 22 (v6)                    ALLOW IN    Anywhere (v6)             
+[11] 80/tcp (v6)                ALLOW IN    Anywhere (v6)             
+[12] 53/tcp (v6)                ALLOW IN    Anywhere (v6) 
