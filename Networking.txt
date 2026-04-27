@@ -2114,5 +2114,297 @@ In most Linux servers SSH Daemon already running so we can look it's config file
 In the server SSH Daemon is using sshd_config
 Client servers which connects to the server use SSH Client config file ssh_config
 
+we can use >man sshd_config - to see the description and options (press N for the next match if we search for /something)
+
 >sudo vim /etc/sshd/sshd_config
+
+Default port is 22 - but we can change it
+AdressFamily - to use ipv4 or ipv6 or both (inet for ipv6 or inet6 for ipv6)  
+
+PermitRootLogin no
+It means your SSH server is configured to block direct root login.  
+The line PermitRootLogin no in your screenshot tells SSH not to allow anyone to log in as the root user over SSH.
+
+According to OpenSSH documentation:
+
+PermitRootLogin no → Root login is completely disabled.
+
+PermitRootLogin yes → Root login allowed (not recommended).
+
+PermitRootLogin prohibit-password → Root login allowed only with SSH keys, not passwords.
+
+PermitRootLogin forced-commands-only → Only allowed for automated restricted commands.
+
+This means:
+
+No one can SSH directly as root@server.
+
+You must log in as a normal user and then use sudo for admin tasks.
+
+This is considered a best‑practice security setting because it reduces brute‑force attack risk.
+
+
+
+PasswordAuthentication no
+
+means your SSH server will not allow password logins at all.
+
+Only SSH keys can be used to log in.
+
+So:
+
+You cannot SSH using a username + password.
+
+You must use an SSH keypair (id_rsa, id_ed25519, etc.).
+
+Brute‑force password attacks become useless.
+
+It’s a common hardening step on production servers.
+
+
+KbdInteractiveAuthentication no
+
+means SSH will not allow keyboard‑interactive authentication.
+
+Here’s what that actually means in practice.
+
+It’s an SSH authentication method where the server can ask the client any kind of prompt, such as:
+
+“Password:”
+
+“Enter OTP code:”
+
+“Security question:”
+
+“Enter verification token:”
+
+It’s more flexible than simple password auth, and it’s often used for:
+
+Two‑factor authentication
+
+One‑time passwords (OTP)
+
+Duo / Google Authenticator
+
+PAM‑based challenges
+
+X11Forwarding yes
+
+
+means your SSH server is allowing graphical applications to be forwarded over SSH.
+
+Let me break it down clearly so you know exactly what’s going on.
+
+
+X11 forwarding lets you:
+
+SSH into a remote Linux machine
+
+Run a graphical program there (like gedit, firefox, xclock)
+
+And have the window appear on your local computer
+
+It tunnels the X11 protocol through SSH.
+
+xeyes
+
+The little eyeball window pops up on your local desktop — even though the program is running remotely.
+
+Every ti,e we change this config file we need reload the service(Daemon)
+>sudo systemctl reload ssh.service
+
+
+check service status and name if it ssh.service or sshd.service in some linux systems:
+>systemctl status ssh OR systemctl status sshd
+
+Key point:
+The daemon is called sshd
+
+The systemd service on Ubuntu is called ssh.service
+
+The config file is sshd_config
+
+The config directory is sshd_config.d
+
+
+/etc/ssh/sshd_config.d/50-cloud-init.conf
+
+inside: PasswordAuthentication yes
+
+
+//////////////////////////////////SSH Client /////////////
+
+>ssh    - will execute SSH client
+
+Even in windows 10/11:
+C:\Users\User>ssh
+usage: ssh [-46AaCfGgKkMNnqsTtVvXxYy] [-B bind_interface] [-b bind_address]
+           [-c cipher_spec] [-D [bind_address:]port] [-E log_file]
+           [-e escape_char] [-F configfile] [-I pkcs11] [-i identity_file]
+           [-J destination] [-L address] [-l login_name] [-m mac_spec]
+           [-O ctl_cmd] [-o option] [-P tag] [-p port] [-Q query_option]
+           [-R address] [-S ctl_path] [-W host:port] [-w local_tun[:remote_tun]]
+           destination [command [argument ...]]
+		   
+		   
+>ls ~/.ssh  - where SSH client keeps some files in this directory
+authorized_keys
+
+>ls -la ~/.ssh   - check SSH client files for each user THE SAME AS for DANI's user  > ls -la /home/dani/.ssh
+
+
+/////////////////Create CUSTOM SSH Client Config for specific user ///////////
+
+>man ssh_config  - check the options
+
+
+>ip -c a  - check server IP 
+
+>cd ~  - go to my home directory
+
+We want to create ssh_config file which will help with login to some server :  instead of typing: ssh jeremy@10.0.0.186 you just type: ssh ubuntu-vm
+
+>vim .ssh/config - create ssh config file
+
+Host ubuntu-vm
+HostName 10.0.0.186
+Port 22
+User jeremy
+
+>sudo chmod 600 ~/.ssh/ssh_config 
+
+and it’s there to make your life easier when connecting to servers.
+
+Let me break it down so it’s crystal clear.
+
+NOW  instead of typing: ssh jeremy@10.0.0.186 you just type: ssh ubuntu-vm
+
+If we leave the changes in the file /etc/ssh/ssh_config next Linux update will remove them , so better do CUSTOM settings in separate file:
+
+sudo vim /etc/ssh/ssh_config
+ls /etc/ssh/ssh_config.d
+sudo vim /etc/ssh/ssh_config.d/99-our-settings.conf  - so better to create separate file for OUR changes
+
+Configure different ssh port:
+Port 228
+
+////////////////To login with SSH with ssh keys instead of password ///////
+
+1.Generate private and public keys on the CLIENT side local computer
+>ssh-keygen
+
+
+>ls ~/.ssh   - direcory where created SSH PRIVATE and PUBLIC key 
+id_XXXXX id_XXXX.pub
+
+2.Need to copy the public key to the server which we want to login_name
+
+run this command and it will copy id_XXXX.pub to that sererver and will be stored at .ssh/authorized_keys:
+>ssh-copy-id dani@10.0.0.0
+
+Now we can try login to the 10.0.0.0
+
+>ssh dani@10.0.0.0
+
+We can check authorized keys which been added to that server:
+
+cat ~/.ssh/authorized_keys
+
+If we need more employees - we can add more keys to this file but not with this command : ssh-copy-id - cause it for the current user only 
+copy all (ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDMoITQuLiblUgEwTurTM6ZxdVqetStsPa6QNY8kfuEm jeremy@kodekloud) from:
+
+cat ~/.ssh/id_ed25519.pub
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDMoITQuLiblUgEwTurTM6ZxdVqetStsPa6QNY8kfuEm jeremy@kodekloud
+
+ssh jeremy@10.0.0.173
+
+
+and open a file in that server:
+
+vim ~/.ssh/authorized_keys
+
+and add/PASTE there the line:
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDMoITQuLiblUgEwTurTM6ZxdVqetStsPa6QNY8kfuEm jeremy@kodekloud
+
+
+>chmod 600 ~/.ssh/authorized_keys
+
+
+When you connect to an SSH server for the first time, your SSH client receives the server’s public host key.
+From that key, SSH generates a fingerprint — a short, unique identifier.
+
+Example:ECDSA key fingerprint is SHA256:abc123...
+This fingerprint is stored in: ~/.ssh/known_hosts
+This file is your SSH client’s memory of which server is which.
+
+Why fingerprints are needed
+They protect you from man‑in‑the‑middle attacks.
+
+When you connect again later, SSH checks:
+
+“Does the server’s fingerprint match what I saw last time?”
+
+If it matches, SSH connects normally.
+If it does NOT match, SSH warns you:
+
+WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!
+
+This could mean:
+
+The server was rebuilt
+
+The SSH keys were regenerated
+
+You connected to the wrong IP
+
+Someone is trying to intercept your connection (MITM attack)
+
+So fingerprints are a security check.
+
+We can remove fingerprint stored for the server with IP address:
+
+>ssh-keygen -R 10.0.0.251 
+
+You use it when:
+
+The server was reinstalled
+
+The SSH host keys changed
+
+You moved the IP to a different machine
+
+You want SSH to “forget” the old identity
+
+After removing it, the next SSH connection will ask:
+
+Are you sure you want to continue connecting?
+
+And then it stores the new fingerprint.
+
+To remove all fingerprints we can remove entire the file:
+
+>rm ~/.ssh/known_hosts 
+
+This deletes all saved fingerprints.
+
+SSH will treat every server as “new” again.
+
+This is useful when:
+
+You’re in a lab environment
+
+You rebuilt many VMs
+
+You don’t care about old fingerprints
+
+You want a clean slate
+
+But it’s less safe, because you lose all protection against MITM attacks until fingerprints are re-learned.
+
+
+
+
+	   
+
+
 
