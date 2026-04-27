@@ -1360,3 +1360,759 @@ Status: active
 [10] 22 (v6)                    ALLOW IN    Anywhere (v6)             
 [11] 80/tcp (v6)                ALLOW IN    Anywhere (v6)             
 [12] 53/tcp (v6)                ALLOW IN    Anywhere (v6) 
+
+
+
+
+
+
+///////////////////////Port Redirection and Network Translation (NAT) ///////////
+
+
+Enable port forwarding:
+/etc/sysctl.conf   - this can be risky to be updated when next time system update will be running so will clean our settings
+OR
+/etc/sysctl.d/99-sysctl.conf
+
+>sudo vim /etc/sysctl.d/99-sysctl.conf
+
+Uncomment the next lines:
+net.ipv4_ip_forward=1    - enable ipv4 port forwarding
+net.ipv6.conf.all.forward=1 - enable ipv6 port forwarding
+
+after the changes + saved need to run:
+
+>sudo sysctl-system   - says to look configuration files changes
+
+>sudo sysctl -a | grep forward   - show as these valuse which we set before
+
+
+How to set port redirection?
+
+Netfilter Framework - is a subsystem
+
+The Linux Netfilter Framework is the packet‑filtering and network‑manipulation subsystem built into the Linux kernel, providing hooks for firewalling, NAT, packet mangling, and connection tracking. 
+
+Netfilter is a kernel‑level framework that lets modules inspect and manipulate packets as they traverse the Linux networking stack. It provides the foundation for tools like iptables and its modern successor nftables
+
+Tools Built on Netfilter
+Netfilter itself is the framework; the user interacts with it through higher‑level tools:
+
+iptables
+The traditional firewall interface for defining rulesets. Each rule contains matches (classifiers) and a target action. 
+
+nftables
+The modern replacement for iptables, offering:
+
+More flexible and scalable rule sets
+
+Better performance
+
+A unified interface for IPv4, IPv6, ARP, and bridge filtering
+
+
+What You Can Do With Netfilter
+According to the official project documentation, Netfilter enables you to:
+
+Build internet firewalls (stateless or stateful)
+
+Deploy high‑availability filtering setups
+
+Implement NAT gateways
+
+Create custom packet‑processing modules 
+
+Moder command to interact with Netfilter framework is NFT or iptables:
+
+
+nftables vs iptables — What actually matters
+🧠 1. Purpose and Architecture
+Both are frontends to the Linux Netfilter framework, but they use different kernel modules:
+
+iptables → ip_tables (legacy, multiple modules)
+
+nftables → nf_tables (modern, unified)
+
+nftables was created to fix iptables’ technical debt: fragmented tools, slow rule processing, and poor scalability.
+
+Example: Block SSH from 10.0.0.5
+
+iptables:
+iptables -A INPUT -s 10.0.0.5 -p tcp --dport 22 -j DROP
+
+nftables:
+nft add rule inet filter input ip saddr 10.0.0.5 tcp dport 22 drop  
+
+Performance & Scalability
+iptables scans rules linearly, which becomes slow with large rule sets.
+
+nftables supports sets and maps, enabling O(1) lookups for thousands of IPs or ports.
+
+nftables updates rules atomically, avoiding race conditions and full ruleset reloads.
+
+
+Inspect ip address on the linux machine (cause we need to understand which ip / configuration to use for redirection):
+
+>ip a  OR ip addr
+
+enp6s0  - has an ip 192.168.0.1/24 
+And
+enp1s0  - has an ip 10.0.0.1/24 
+
+>ip r   - to see the route 
+
+default via 10.11.12.1 dev enp1s0 proto dhcp src 10.11.12.14 metric 100
+
+This is only the default route — it tells the system:
+
+Gateway: 10.11.12.1
+
+Interface: enp1s0
+
+Your IP: 10.11.12.14
+
+Route source: DHCP
+
+This is purely routing, not NAT, not DNAT, not REDIRECT, not port‑forwarding.
+
+
+iptables Packet Flow:
+
+                [ Network Interface ]
+                         |
+                         v
+                    +---------+
+                    |   raw   |
+                    +---------+
+                         |
+                         v
+              +----------------------+
+              |  connection tracking |
+              +----------------------+
+                         |
+                         v
+                    +---------+
+                    |  mangle |
+                    +---------+
+                         |
+                         v
+                      +-----+
+                      | nat |
+                      +-----+
+                         |
+                         v
+                    +---------+
+                    |  mangle |
+                    +---------+
+                         |
+                         v
+                    +---------+
+                    |  filter |
+                    +---------+
+                         |
+                         v
+                    +---------+
+                    |  mangle |
+                    +---------+
+                         |
+                         v
+                    +---------+
+                    |  filter |
+                    +---------+
+                         |
+                         v
+                      +-----+
+                      | nat |
+                      +-----+
+                         |
+                         v
+                    +---------+
+                    |  mangle |
+                    +---------+
+                         |
+                         v
+                    +---------+
+                    |  filter |
+                    +---------+
+                         |
+                         v
+                      +-----+
+                      | nat |
+                      +-----+
+                         |
+                         v
+              +----------------------+
+              |  connection tracking |
+              +----------------------+
+                         |
+                         v
+                    +---------+
+                    |   raw   |
+                    +---------+
+                         |
+                         v
+                  [ Local Process ]
+
+
+You’re showing an iptables DNAT port‑forwarding rule, and you want it written out cleanly as plain text for Notepad. Here it is exactly as it appears, formatted neatly:
+
+sudo iptables -t nat -A PREROUTING \
+    -i enp1s0 \
+    -s 10.0.0.0/24 \
+    -p tcp --dport 8080 \
+    -j DNAT --to-destination 192.168.0.5:80
+
+
+
+sudo iptables -t nat -A POSTROUTING -s 10.0.0.0/24 -o enp6s0 -j MASQUERADE
+
+
+Dani, that command you showed is a MASQUERADE rule — the second half of a typical port‑forwarding/NAT setup on Linux.
+
+This rule tells Linux:
+
+Any traffic coming from the 10.0.0.0/24 network
+
+And going out through interface enp6s0
+
+Should have its source IP rewritten (SNAT) to the IP of enp6s0
+
+Using MASQUERADE, which automatically adapts to dynamic IPs
+
+In short:
+
+✔ It allows devices on 10.0.0.0/24 to access the outside world
+✔ It ensures return packets know how to get back
+✔ It is required for DNAT/port‑forwarding to work correctly
+
+Why you need this rule:
+
+When you forward a port (DNAT), example:
+
+PREROUTING → DNAT → 192.168.0.5:80
+
+
+The server at 192.168.0.5 must reply back through your router.
+Without MASQUERADE, the reply would go directly to the client and break the connection.
+
+So this rule ensures:
+
+Outgoing packets get rewritten
+
+Replies return through the router
+
+Port forwarding works end‑to‑end
+
+NFT example:
+
+now is the nftables version of the same port‑forwarding setup you previously built with iptables. This is the modern Netfilter ruleset, and it’s doing exactly the same job — just cleaner and more efficient.
+
+>sudo ntf list ruleset
+
+table ip nat {
+    chain PREROUTING {
+        type nat hook prerouting priority dstnat; policy accept;
+        iifname "enp1s0" meta l4proto tcp ip saddr 10.0.0.0/24 tcp dport 8080 counter packets 0 bytes 0 dnat to 192.168.0.5:80
+    }
+
+    chain POSTROUTING {
+        type nat hook postrouting priority srcnat; policy accept;
+        oifname "enp6s0" ip saddr 10.0.0.0/24 counter packets 0 bytes 0 masquerade
+    }
+}
+
+Cause:
+10.0.0.x  →  enp1s0  →  ROUTER  →  enp6s0  →  192.168.0.5
+
+
+Why MASQUERADE is needed (the real reason)
+
+10.0.0.x → enp1s0 → DNAT → 192.168.0.5:80
+
+Now the server replies:
+
+192.168.0.5 → 10.0.0.x
+
+NOte: Without MASQUERADE, the server tries to send the reply directly to 10.0.0.x
+It bypasses the router → the client drops the packet → connection breaks.
+
+With MASQUERADE:
+
+192.168.0.5 → enp6s0 → Router rewrites source → 192.168.0.1 → enp1s0 → 10.0.0.x
+Now the reply goes back through the router, and the router knows how to deliver it.
+
+To make permanent NFT rules configuration (reboot will not remove it)
+
+>sudo apt install iptables-persistent - and pick up YES default answer
+
+now we can change ip tables:
+>sudo netfilter-persistent save 
+
+sudo iptables -t nat -A PREROUTING -i enp1s0 -s 10.0.0.0/24 -p tcp --dport 8080 -j DNAT --to-destination 192.168.0.5:80
+
+sudo iptables -t nat -A POSTROUTING -s 10.0.0.0/24 -o enp6s0 -j MASQUERADE
+
+But us well need to configure UFW cause we want to be protected and do not allow to everyone to be connected to the machine:
+
+sudo ufw allow 22
+sudo ufw enable
+sudo ufw route allow from 10.0.0.0/24 to 192.168.0.5
+
+
+In additional the same INTERNET INTERFACE - not good for real scenario:
+
+#input
+-i enp1s0
+
+#output
+-o enp1s0
+
+Valid with -i:
+PREROUTING (nat/mangle) — packet just arrived
+
+INPUT (filter) — packet destined for local machine
+
+FORWARD (filter) — packet being routed through the machine
+
+Invalid with -i:
+POSTROUTING — packet is already leaving
+
+OUTPUT — packet was generated locally
+
+Reason: In POSTROUTING/OUTPUT, the packet has no “incoming interface” anymore.
+
+>man ufw-framework  - have example of it and we can copy and use as part of the command:
+
+And use it for:
+
+
+sudo iptables -t nat -A PREROUTING  ...  DNAT
+sudo iptables -t nat -A POSTROUTING ...  MASQUERADE
+
+Example:
+
+sudo iptables -t nat -A PREROUTING -p tcp -i eth0 --dport 80 -s 192.168.0.0/24 -j DNAT --to-destination 10.0.0.2:80
+
+
+and then find there : -A POSTROUTING -s 10.0.0.0/8 -o eth0 -j MASQUERADE
+and use for masquerade configuration
+
+sudo iptables -t nat -A POSTROUTING -s 10.0.0.0/8 -o eth0 -j MASQUERADE
+
+To list curret rules:
+>sudo iptables --list-rules --table nat 
+
+
+
+-P PREROUTING ACCEPT
+-P INPUT ACCEPT
+-P OUTPUT ACCEPT
+-P POSTROUTING ACCEPT
+
+-A PREROUTING -i enp1s0 -s 10.0.0.0/24 -p tcp --dport 8080 -j DNAT --to-destination 192.168.0.5:80
+-A POSTROUTING -s 10.0.0.0/24 -o enp6s0 -j MASQUERADE
+
+If you did any mistake you can fix the table with:
+
+>sudo iptables --flush -table nat
+
+
+///////////////////Implement Reverse Proxies and Load Balancers ///////
+
+What a reverse proxy is
+
+A reverse proxy is a server that sits in front of your backend servers and handles requests on their behalf.
+
+Think of it as:
+
+A smart middleman that clients never see.
+
+Clients think they’re talking to one server, but behind it you can have:
+
+multiple web servers
+
+multiple apps
+
+containers
+
+internal services
+
+different ports
+
+different machines
+
+The reverse proxy hides all of that.
+
+Why reverse proxies are needed (the real reasons)
+
+1. One public IP → many internal services
+You can run:
+
+example.com → backend 1
+
+api.example.com → backend 2
+
+example.com/app → backend 3
+
+All behind one IP and one port (80/443).
+
+NAT cannot do this.
+Port forwarding cannot do this cleanly.
+Reverse proxies excel at this.
+
+
+2. SSL termination
+The reverse proxy handles HTTPS:
+
+It receives encrypted traffic
+
+Decrypts it
+
+Sends plain HTTP to your internal servers
+
+Your backend servers don’t need certificates at all.
+
+3. Load balancing
+A reverse proxy can distribute traffic across multiple servers:
+
+
+Client → Reverse Proxy → Server A
+Client → Reverse Proxy → Server B
+Client → Reverse Proxy → Server C
+
+
+4. Security
+Reverse proxies can:
+
+hide your internal network
+
+block bad requests
+
+rate‑limit
+
+filter bots
+
+add WAF (Web Application Firewall)
+
+protect backend servers from direct exposure
+
+Your backend servers never face the internet directly.
+
+5. Caching
+Reverse proxies can store static content:
+
+images
+
+CSS
+
+JS
+
+API responses
+
+This makes your site faster and reduces backend load.
+
+
+Load Balancers - balance trafic between multiple servers
+
+///////////////////////////////////////////////////////////
+
+Revers Proxy - in this case when user will ask for a WEBPAGE - NGINX will fetch the page from another WEB Server
+lets create a NGINX web server:
+>sudo apt install nginx
+
+>sudo vim /etc/nginx/sites-available/proxy.conf 
+
+sudo vim /etc/nginx/sites-available/proxy.conf
+
+server {
+    listen 80;
+    location / {
+        proxy_pass http://1.1.1.1;
+    }
+}
+
+Explanation:
+
+Location directive will match all requests:
+example.com/
+example.com/admin
+example.com/images/dog.jpg
+example.com/images/animals/cat.jpg
+
+
+Example to pass :
+
+server {
+    listen 80;
+    location /images {
+        proxy_pass http://1.1.1.1;
+        include proxy_params;       - to pass as well PARAMETERS,if server need to get additional data with request
+    }
+}
+
+
+Those four lines in proxy_params are not optional decoration. They exist because without them, your backend server would not know who the real client is.
+
+cat /etc/nginx/proxy_params
+
+proxy_set_header Host $http_host;
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+
+
+
+NGINX  uses a two‑folder system to separate:
+
+/etc/nginx/sites-available and /etc/nginx/sites-enabled
+
+
+This folder is like a library.
+You can keep:
+
+test configs
+
+disabled sites
+
+staging configs
+
+old versions
+
+multiple domain configs
+
+They exist, but they’re not active.
+
+Only the active site configs: /etc/nginx/sites-enabled
+
+Why this system is needed
+
+Easy enable/disable of sites - "SOFT LINK"
+
+sudo ln -s /etc/nginx/sites-available/mysite.conf /etc/nginx/sites-enabled/
+
+Disable a site:
+
+sudo rm /etc/nginx/sites-enabled/mysite.conf
+
+2. Clean organization
+You can keep dozens of configs in sites-available without cluttering the active list.
+
+3. Safe testing
+You can prepare a config in sites-available, test it, and only enable it when ready.
+
+4. Standard across Linux distros
+This structure comes from Debian/Ubuntu and is now widely used.
+It keeps things predictable for admins and automation tools.
+
+
+hen you use these folders
+You use them when:
+hosting multiple websites
+
+hosting multiple apps
+
+using reverse proxies
+
+using SSL certificates
+
+running staging + production on the same server
+
+managing complex routing setups
+
+You don’t need them when:
+running a single simple site
+
+using only the default config
+
+using NGINX inside a Docker container (usually one config file)
+
+But even then, the structure is still helpful.
+
+Quick mental model
+Think of it like this:
+
+sites-available = storage room
+
+sites-enabled = what’s actually plugged in and running
+
+NGINX only looks at what’s plugged in.
+
+
+
+
+To check config files for errors with:
+>sudo nginx -t  - where t means test configuration files
+
+Output:
+
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+
+
+To apply our new settings we simply reload Nginx:
+sudo systemctl reload nginx.service
+
+/////////////////////////////////Create LOAD BALANCER //////////
+
+First to remove old or existing configuration:
+
+sudo rm /etc/nginx/sites-enabled/proxy.conf
+
+And add the next content:
+
+sudo vim /etc/nginx/sites-available/lb.co
+
+upstream mywebservers {
+    least_conn;  - says to distribute the trafffic to least BUSY server
+    server 1.2.3.4; weight=3;     - so from 4 request 3 will be sent to this server and one request to 5.6.7.8.If we write: down; - it like server under maintenace it request will not be sent there
+    server 5.6.7.8:8081;  - we can specify a port which is listening
+	server 10.20.30.40 backup; - this server will start to get a traffic(starts to be active) only if 1.2.3.4 fails or 5.6.7.8
+}
+
+server {
+    listen 80;
+    location / {
+        proxy_pass http://mywebservers;
+    }
+}
+
+
+Link file to the “sites-enabled” directory:
+sudo ln -s /etc/nginx/sites-available/lb.conf /etc/nginx/sites-enabled/lb.conf
+
+
+Test configuration:
+sudo nginx -t
+
+Nginx settings should be reloaded with:
+sudo systemctl reload nginx.service
+
+
+///////////////////////////////Set and Synchronize System Time Using Time Servers ///////////
+
+NTP - are TIME SERVERS (NETWORK TIME PROTOCOL)
+
+In ubuntu time synchronization is systemd-timsyncd service - which reads the time from the NTP server ?
+
+Time related operations can be perform with: timedatectl utility
+
+To see available timezones run: 
+>timedatectl list-timezones
+
+
+To set the TIME ZONE:
+>sudo timedatectl set-timezone America/Los_Angeles 
+
+To validate TIMEZONE:
+>timedatectl 
+jeremy@kodekloud:~$ timedatectl
+               Local time: Wed 2024-05-22 18:45:48 PDT
+           Universal time: Thu 2024-05-23 01:45:48 UTC
+                 RTC time: Thu 2024-05-23 01:45:48
+                Time zone: America/Los_Angeles (PDT, -0700)
+System clock synchronized: yes
+              NTP service: active
+          RTC in local TZ: no
+		  
+		  
+If it says 		  NTP service: nonactive we need to do next Install :
+
+
+>sudo apt install sytsemd-timesyncd
+
+Now we can Turn ON sycn with NTP server:
+>sudo timedatectl set-ntp true 
+
+
+Validate if NTP server is active:
+
+>timedatectl:
+
+jeremy@kodekloud:~$ timedatectl
+               Local time: Wed 2024-05-22 18:45:48 PDT
+           Universal time: Thu 2024-05-23 01:45:48 UTC
+                 RTC time: Thu 2024-05-23 01:45:48
+                Time zone: America/Los_Angeles (PDT, -0700)
+System clock synchronized: yes
+              NTP service: active
+          RTC in local TZ: no
+		  
+		  
+To check the status of systemd-timesync DAEMON(service) - we should se ACTIVE and ENABLED:
+>sudo status systemd-timesyncd.service
+	  
+systemd-timesyncd.service - Network Time Synchronization
+     Loaded: loaded (/lib/systemd/system/systemd-timesyncd.service; enabled; preset: enabled)
+     Active: active (running) since Wed 2024-05-22 17:23:17 PDT; 1h 24min ago
+       Docs: man:systemd-timesyncd.service(8)
+   Main PID: 809 (systemd-timesyn)
+     Status: "Contacted time server 91.189.91.157:123 (ntp.ubuntu.com)."
+      Tasks: 2 (limit: 9442)
+     Memory: 1.4M (peak: 2.2M)
+        CPU: 198ms
+     CGroup: /system.slice/systemd-timesyncd.service
+             └─809 /lib/systemd/systemd-timesyncd
+
+May 22 17:23:21 kodekloud systemd-timesyncd[809]: Network configuration changed, trying to establish c
+
+To check the DAEMON systemd-timesyncd configuration and MENTION which NTP server or server to use:
+>sudo vim /etc/systemd/timesyncd.conf
+
+[Time]
+NTP=0.us.pool.ntp.org 1.us.pool.ntp.org 2.us.pool.ntp.org 3.us.pool.ntp.org
+#FallbackNTP=ntp.ubuntu.com
+#RootDistanceMaxSec=5
+#PollIntervalMinSec=32
+#PollIntervalMaxSec=2048
+#ConnectionRetrySec=30
+#SaveIntervalSec=60
+~
+
+Restart the DAEMON:
+
+sudo systemctl restart systemd-timesyncd
+
+
+>timedatectl       And you can see more option to use with the command
+
+Like:
+
+jeremy@kodekloud:~$ timedatectl show-timesync
+SystemNTPServers=0.us.pool.ntp.org 1.us.pool.ntp.org 2.us.pool.ntp.org 3.us.pool.ntp.org
+FallbackNTPServers=ntp.ubuntu.com
+ServerName=0.us.pool.ntp.org
+ServerAddress=198.30.92.2
+RootDistanceMaxUSec=5s
+PollIntervalMinUSec=32s
+PollIntervalMaxUSec=34min 8s
+PollIntervalUSec=2min 8s
+NTPMessage={ Leap=0, Version=4, Mode=4, Stratum=2, Precision=-20, RootDelay=21.499ms, RootDispersion=28.747ms, Reference=82CFF4F0, OriginateTimestamp=Wed 2024-05-22 18:53:17 PDT, ReceiveTimestamp=Wed 2024-05-22 18:53:17 PDT, TransmitTimestamp=Wed 2024-05-22 18:53:17 PDT, DestinationTimestamp=Wed 2024-05-22 18:53:17 PDT, Ignored=no, PacketCount=2, Jitter=99us }
+Frequency=781150
+
+jeremy@kodekloud:~$ timedatectl timesync-status
+       Server: 198.30.92.2 (0.us.pool.ntp.org)
+Poll interval: 2min 8s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 2
+    Reference: 82CFF4F0
+    Precision: 1us (-20)
+ Root distance: 39.496ms (max: 5s)
+       Offset: -262us
+        Delay: 79.540ms
+       Jitter: 99us
+  Packet count: 2
+    Frequency: +11.919ppm
+jeremy@kodekloud:~$
+
+
+//////////////////Consigure SSH Servers and Clients ///////
+
+
+In most Linux servers SSH Daemon already running so we can look it's config file (and most Linux servers have SSH Client and SSH Serevr part):
+In the server SSH Daemon is using sshd_config
+Client servers which connects to the server use SSH Client config file ssh_config
+
+>sudo vim /etc/sshd/sshd_config
+
