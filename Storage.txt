@@ -1,0 +1,355 @@
+////////////// Storage //////////////
+
+Problem to isntall Windows and Linux in one disk :
+Windows is using NTFS file system
+Linus is using EXT4 file system 
+
+We need divide the tisk to partitions - then we can use one parttion for Windows and Second for Linux.
+one partition will be using NTFS for Windows and second partition EXT4 for Linux
+
+To check which partition exit on linux server:
+
+>lsblk   - where sda is the disk and sda1 ,sda2,sda3 are partitions
+
+NAME                      MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+sda                         8:0    0   45G  0 disk
+├─sda1                      8:1    0    1M  0 part
+├─sda2                      8:2    0    2G  0 part /boot
+└─sda3                      8:3    0   43G  0 part
+  └─ubuntu--vg-ubuntu--lv 253:0    0 21.5G  0 lvm  /
+sr0                        11:0    1 1024M  0 rom
+
+
+>ls /dev/sda1  - we can find this sda1 partition in this file
+
+Show me the list of partitions in this disk device:
+>sudo fdisk --list /dev/sda 
+
+ 
+We created a new disk and now: cfdisk asking you to choose a partition table type for the disk you opened if you run this:
+ 
+>sudo cfdisk /dev/sbd  
+
+and the disk has no partition table, cfdisk asks you to create one.
+That’s why you see:
+
+Select label type
+gpt  - GPT (GUID Partition Table) — Modern, recommended
+dos  - DOS (MBR – Master Boot Record) — Old, legacy
+sgi  - SGI — Silicon Graphics IRIX systems
+sun  - SUN — Sun Microsystems / Solaris
+
+cfdisk is a text‑based partitioning tool (similar to fdisk but easier to use).
+It lets you:
+
+View partitions on a disk
+
+Create new partitions
+
+Delete partitions
+
+Resize (in some cases)
+
+Change partition types
+
+Write a new partition table
+
+It uses a simple, arrow‑key‑driven interface.
+
+
+cfdisk edits entire disks, not individual partitions.
+If you write changes, you can destroy all data on that disk.
+
+Safe actions:
+
+Viewing the disk layout
+
+Navigating menus
+
+Dangerous actions:
+
+Deleting partitions
+
+Creating new ones
+
+Writing changes
+
+If /dev/sbd is the wrong disk, you could wipe something important.
+
+//////////////Configure and Manage Swap Space //////////
+
+Swap - is it some area where linux can move temporary some data from RAM
+
+
+>swapon --show    - to see the current SWAP set up (if exist and configured - it will show)
+
+check partition (which we created before and we can use for SWAP):
+
+>lsblk 
+
+vdb - vdb3  - we crated before this partition and now want to use it for a Swap
+
+To format it for SWAP(tell to linux ue this partition for a SWAP)  run:
+>sudo mkswap /dev/vdb3
+
+>sudo swapon --verbose /dev/vdb3  - to get more datails when we preparing the partition for a SWAP
+
+check the swap:
+>swapon --show
+Output:
+/dev/vdb3 partition 2G 0B -2
+
+But if we reboot the system - SWAP will be removed from the /dev/vdb3 partition
+
+
+To stop the SWAP usage:
+>sudo swapoff /dev/vdb3
+
+When we install Ubuntu - SWAP and file will be set by default
+
+To do it manually(create a swap file) we need create a next file with binary zero filled:
+
+sudo dd if=/dev/zero of=/swap bs=1M count=128
+
+This creates a 128 MB swap file filled with zeros.
+
+Here’s the meaning of each part:
+
+sudo
+Runs the command with administrator privileges.
+
+dd
+A low‑level copying tool used to write raw data to files or devices.
+
+if=/dev/zero
+if = input file
+
+/dev/zero is a special file that outputs infinite zeros
+
+So you’re writing zeros into the new file
+
+of=/swap
+of = output file
+
+This creates a file named /swap in the root directory
+
+bs=1M
+Block size = 1 megabyte
+
+Each block written is 1 MB
+
+count=128
+Write 128 blocks
+
+128 × 1 MB = 128 MB swap file
+
+What happens next (normally)
+After creating the file, you would:
+
+Set correct permissions
+
+Code
+sudo chmod 600 /swap  - only root user can read and write to this swap file
+Format it as swap
+
+Code
+sudo mkswap /swap
+Enable it
+
+check the swap active areas again:
+>sudo swapon --verbose /swap
+
+swapon --show 
+
+Code
+sudo swapon /swap
+Make it permanent in /etc/fstab
+
+Code
+/swap   none   swap   sw   0  0
+
+
+
+Another command wil show us the progress during creation a swap file:
+
+sudo dd if=/dev/zero of=/swap bs=1M count=2048 status=progress
+
+
+////////////////////LAB ///////////
+
+How do we display block devices such as disks or partitions?
+
+lsblk
+
+bob@caleston-lp10 ~ ➜  lsblk
+NAME    MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+vda     252:0    0   10G  0 disk 
+├─vda1  252:1    0  9.9G  0 part /
+├─vda14 252:14   0    4M  0 part 
+└─vda15 252:15   0  106M  0 part /boot/efi
+vdb     252:16   0    1M  0 disk /mnt/app-config
+vdc     252:32   0    1M  0 disk 
+vdd     252:48   0    2G  0 disk 
+vde     252:64   0    2G  0 disk 
+vdf     252:80   0    1G  0 disk 
+
+How do we format a partition as swap space?
+
+sudo mkswap /dev/vdb3
+
+Identify the name of the virtual disk where / is mounted on this system.
+
+
+Save the value (only the name without path) in the /root/part file.
+
+bob@caleston-lp10 ~ ✖ lsblk
+NAME    MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+vda     252:0    0   10G  0 disk 
+├─vda1  252:1    0  9.9G  0 part /
+├─vda14 252:14   0    4M  0 part 
+└─vda15 252:15   0  106M  0 part /boot/efi
+vdb     252:16   0    1M  0 disk /mnt/app-config
+vdc     252:32   0    1M  0 disk 
+vdd     252:48   0    2G  0 disk 
+vde     252:64   0    2G  0 disk 
+vdf     252:80   0    1G  0 disk 
+
+bob@caleston-lp10 ~ ➜  lsblk } grep vda1
+lsblk: }: not a block device
+lsblk: grep: not a block device
+lsblk: vda1: not a block device
+
+bob@caleston-lp10 ~ ✖ lsblk | grep vda1
+├─vda1  252:1    0  9.9G  0 part /
+├─vda14 252:14   0    4M  0 part 
+└─vda15 252:15   0  106M  0 part /boot/efi
+
+bob@caleston-lp10 ~ ➜  lsblk | grep vda1 | head -1
+├─vda1  252:1    0  9.9G  0 part /
+
+sudo sh -c "lsblk | grep vda1 | head -1 | awk '{print \$1}' > /root/part"
+
+
+Find out the swapfile used on this system and save its exact path in the /root/swap file.
+
+bob@caleston-lp10 ~ ✖ swapon --show
+NAME      TYPE  SIZE USED PRIO
+/swapfile file 1024M   0B   -2
+
+bob@caleston-lp10 ~ ➜  sudo swapon --show | tail -1 | awk '{print $1}'
+/swapfile
+
+bob@caleston-lp10 ~ ➜  sudo swapon --show | tail -1 | awk '{print $1}'
+
+>sudo sh -c "sudo swapon --show | tail -1 | awk '{print $1}' > /root/swap"
+
+
+
+Create three primary partitions on /dev/vdd.
+
+
+First should have 10MB, second should have 21MB and the third should have 15MB.
+
+bob@caleston-lp10 ~ ➜  sudo fdisk --list /dev/vdd
+Disk /dev/vdd: 2 GiB, 2147483648 bytes, 4194304 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+
+
+sudo cfdisk /dev/vdd
+
+Device                               Start                 End             Sectors             Size Type
+    /dev/vdd1                             2048               22527               20480              10M Linux filesystem
+    /dev/vdd2                            22528               65535               43008              21M Linux filesystem
+>>  /dev/vdd3                            65536               96255               30720              15M Linux filesystem            
+    Free space                           96256             4194270             4098015               2G
+
+and WRITE:
+
+bob@caleston-lp10 ~ ✖ sudo cfdisk /dev/vdd
+
+Syncing disks.
+
+
+Validation:
+
+bob@caleston-lp10 ~ ✖ sudo fdisk --list /dev/vdd
+Disk /dev/vdd: 2 GiB, 2147483648 bytes, 4194304 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: gpt
+Disk identifier: 4D769D1D-C2BB-334D-B610-A8FF0BFF9814
+
+Device     Start   End Sectors Size Type
+/dev/vdd1   2048 22527   20480  10M Linux filesystem
+/dev/vdd2  22528 65535   43008  21M Linux filesystem
+/dev/vdd3  65536 96255   30720  15M Linux filesystem
+
+
+Delete the 10MB partition.
+
+
+bob@caleston-lp10 ~ ✖ sudo cfdisk /dev/vdd
+
+Syncing disks.
+
+bob@caleston-lp10 ~ ➜  sudo fdisk --list /dev/vdd
+Disk /dev/vdd: 2 GiB, 2147483648 bytes, 4194304 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: gpt
+Disk identifier: 4D769D1D-C2BB-334D-B610-A8FF0BFF9814
+
+Device     Start   End Sectors Size Type
+/dev/vdd2  22528 65535   43008  21M Linux filesystem
+/dev/vdd3  65536 96255   30720  15M Linux filesystem
+
+
+Format the 21MB partition as swap. Next, make it active, and tell Linux to start using it as swap memory.
+
+Step 1 — Format the partition as swap
+
+bob@caleston-lp10 ~ ✖ sudo mkswap /dev/vdd3
+Setting up swapspace version 1, size = 15 MiB (15724544 bytes)
+no label, UUID=90ab4ab0-32e1-4918-adb0-d46014184d09
+
+bob@caleston-lp10 ~ ➜  >sudo sh -c "sudo swapon --verbose /dev/vdd3"
+swapon: /dev/vdd3: found signature [pagesize=4096, signature=swap]
+swapon: /dev/vdd3: pagesize=4096, swapsize=15728640, devsize=15728640
+
+Step 2 — Enable the swap partition
+Code
+
+bob@caleston-lp10 ~ ✖ sudo swapon /dev/vdd3
+swapon: /dev/vdd3: swapon failed: Device or resource busy
+
+
+cause it is already in swap:
+
+bob@caleston-lp10 ~ ✖ lsblk -f
+NAME    FSTYPE  FSVER            LABEL           UUID                                 FSAVAIL FSUSE% MOUNTPOINTS
+vda                                                                                                  
+├─vda1  ext4    1.0              cloudimg-rootfs aa0bde06-47f6-4049-aaaf-13d052e53961    6.9G    27% /
+├─vda14                                                                                              
+└─vda15 vfat    FAT32            UEFI            A913-ACAA                              98.3M     6% /boot/efi
+vdb     iso9660 Joliet Extension cfgdata         2026-04-28-12-18-30-00                     0   100% /mnt/app-config
+vdc     iso9660 Joliet Extension cidata          2026-04-28-12-18-31-00                              
+vdd                                                                                                  
+├─vdd2                                                                                               
+└─vdd3  swap    1                                90ab4ab0-32e1-4918-adb0-d46014184d09                [SWAP]
+vde                                                                                                  
+vdf           
+
+Tell Linux to stop using the 21MB partition as swap.
+
+sudo swapoff /dev/vdd3
+
+Resize the /dev/vdd3 partition (which you created earlier) to 21MB.
+
+bob@caleston-lp10 ~ ➜  sudo cfdisk /dev/vdd
+
+Syncing disks.
+
