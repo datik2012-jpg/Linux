@@ -2401,10 +2401,270 @@ You want a clean slate
 
 But it’s less safe, because you lose all protection against MITM attacks until fingerprints are re-learned.
 
+Only the client machine that stored the old fingerprint will get the warning.  
+Nobody else sees it.
 
 
 
+//////////////////////LAB /////////////
+
+In what file can we edit the settings of our SSH server?
 	   
+
+/etc/ssh/sshd_config
+
+In a squid proxy server, what does this line do?
+
+http_access allow localnetwork
+
+C. It makes it accept incoming connections from whatever was defined in the ACL named "localnetwork"
+
+
+Edit the configuration of the SSH server and disable password logins.
+
+
+Please make sure to restart the sshd service after making the required changes.
+
+sudo vim /etc/ssh/sshd_config
+
+PasswordAuthentication no
+
+Reload: sudo systemctl reload ssh.service
+
+
+Edit the system-wide configuration of the SSH client and turn on X11 forwarding.
+
+bob@caleston-lp10 ~ ✦ ✖ sudo ls -ld ~/.ssh
+ls: cannot access '/home/bob/.ssh': No such file or directory
+
+Create dir if not exist:
+
+bob@caleston-lp10 ~ ✦ ✖ mkdir -p ~/.ssh
+
+bob@caleston-lp10 ~ ✦ ➜  sudo ls -ld ~/.ssh
+drwxrwxr-x. 2 bob bob 4096 Apr 28 07:34 /home/bob/.ssh
+
+vim .ssh/config
+
+Add tothe file:
+Host *
+    ForwardX11 yes
+    ForwardX11Trusted yes
+	
+
+run:
+chmod 600 ~/.ssh/config
+
+I did in wrond place!!!! Need: You haven't made any changes to the /etc/ssh/ssh_config file yet; instead, you've been working with your local ~/.ssh/config. The task requires editing the system-wide SSH client configuration, which is located at 
+
+run:
+sudo vim /etc/ssh/ssh_config
+
+ForwardX11 yes.
+
+
+Install squid proxy server on this system and start its service.
+
+>suid help
+
+>sudo apt install squid
+
+bob@caleston-lp10 ~ ✦3 ✖ systemctl -a | grep squid
+  squid.service                                                                            loaded    active   running   Squid Web Proxy Server
+
+As well the option to check service:
+
+bob@caleston-lp10 ~ ✦3 ✖ systemctl status squid
+● squid.service - Squid Web Proxy Server
+     Loaded: loaded (/lib/systemd/system/squid.service; enabled; vendor preset: enabled)
+     Active: active (running) since Tue 2026-04-28 07:46:43 UTC; 1min 44s ago
+       Docs: man:squid(8)
+    Process: 2601 ExecStartPre=/usr/sbin/squid --foreground -z (code=exited, status=0/SUCCESS)
+   Main PID: 2604 (squid)
+      Tasks: 4 (limit: 3435)
+     Memory: 17.6M
+        CPU: 122ms
+     CGroup: /system.slice/squid.service
+             ├─2604 /usr/sbin/squid --foreground -sYC
+             ├─2606 "(squid-1)" --kid squid-1 --foreground -sYC
+             ├─2608 "(logfile-daemon)" /var/log/squid/access.log
+             └─2609 "(pinger
+			 
+To check to which port is listenig squid service:
+
+
+bob@caleston-lp10 ~ ✦3 ➜  sudo ss -tulpn | grep squid
+udp   UNCONN 0      0                   0.0.0.0:53421      0.0.0.0:*    users:(("squid",pid=2606,fd=9))                          
+udp   UNCONN 0      0                         *:53921            *:*    users:(("squid",pid=2606,fd=8))                          
+tcp   LISTEN 0      256                       *:3128             *:*    users:(("squid",pid=2606,fd=12))	
+
+To test the proxy locally
+
+bob@caleston-lp10 ~ ✦3 ✖ curl -I -x http://localhost:3128 http://example.com
+HTTP/1.1 200 OK
+Date: Tue, 28 Apr 2026 07:50:23 GMT
+Content-Type: text/html
+Server: cloudflare
+Last-Modified: Sat, 18 Apr 2026 00:51:00 GMT
+Allow: GET, HEAD
+Accept-Ranges: bytes
+Age: 13633
+cf-cache-status: HIT
+CF-RAY: 9f3479cdbd68eb04-ORD
+X-Cache: MISS from caleston-lp10
+X-Cache-Lookup: MISS from caleston-lp10:3128
+Via: 1.1 caleston-lp10 (squid/5.9)
+Connection: keep-alive	
+
+
+
+Edit the config file of the Squid proxy daemon. Modify it to deny access to the IP addresses defined in the ACL called localnet.
+
+How to find where is squid config located?
+
+Try: systemctl status squid  - will not help
+
+The ACL localnet is defined in the main Squid configuration file:
+
+Location: sudo vim /etc/squid/squid.conf
+
+
+http_access deny localnet
+acl localnet src 0.0.0.1-0.255.255.255  # RFC 1122 "this" network (LAN)
+acl localnet src 10.0.0.0/8             # RFC 1918 local private network (LAN)
+acl localnet src 100.64.0.0/10          # RFC 6598 shared address space (CGN)
+acl localnet src 169.254.0.0/16         # RFC 3927 link-local (directly plugged) machines
+acl localnet src 172.16.0.0/12          # RFC 1918 local private network (LAN)
+acl localnet src 192.168.0.0/16         # RFC 1918 local private network (LAN)
+acl localnet src fc00::/7               # RFC 4193 local private network range
+acl localnet src fe80::/10              # RFC 4291 link-local (directly plugged) machines
+
+
+Restart:
+
+bob@caleston-lp10 ~ ✦5 ✖ squid restart
+2026/04/28 08:01:55| ACL not found: localnet
+2026/04/28 08:01:55| FATAL: Bungled /etc/squid/squid.conf line 1333: http_access deny localnet
+2026/04/28 08:01:55| Squid Cache (Version 5.9): Terminated abnormally.
+CPU Usage: 0.006 seconds = 0.000 user + 0.006 sys
+Maximum Resident Size: 51888 KB
+Page faults with physical i/o: 0
+
+check the satus:
+
+bob@caleston-lp10 ~ ✦5 ✖ squid restart
+2026/04/28 08:01:55| ACL not found: localnet
+2026/04/28 08:01:55| FATAL: Bungled /etc/squid/squid.conf line 1333: http_access deny localnet
+2026/04/28 08:01:55| Squid Cache (Version 5.9): Terminated abnormally.
+CPU Usage: 0.006 seconds = 0.000 user + 0.006 sys
+Maximum Resident Size: 51888 KB
+Page faults with physical i/o: 0
+
+
+Edit the configuration of the Squid proxy daemon. Add a src type acl and name it vpn. The IP you should use in this acl is 203.0.110.5. Now add a new rule that tells the proxy server to allow access to the acl named vpn.
+
+modify:
+
+sudo vim /etc/squid/squid.conf
+
+Add:
+
+acl vpn src 203.0.110.5
+
+and
+
+http_access allow vpn
+
+
+
+Edit the configuration of the SSH server and configure it to use only IPv4 IP address family.
+
+So for SSH Server we modify a file:
+
+sudo vim /etc/ssh/sshd_config
+
+and add:
+
+AddressFamily inet
+
+Reload the service:
+
+sudo systemctl reload ssh.service
+
+
+Edit the configuration of the Squid proxy daemon. Now, add a new rule that allows http access to external.
+
+Need to install squid again - cause i started the lab and it is not exist !!
+
+>sudo apt install squid 
+
+After install check if squid proxy daemon config file exist:
+
+bob@caleston-lp10 ~ ✦6 ➜  sudo ls -l /etc/squid/squid.conf
+-rw-r--r--. 1 root root 343185 Apr  2 18:27 /etc/squid/squid.conf
+
+Now we can do:
+
+bob@caleston-lp10 ~ ✦6 ✖ sudo sed -i '/http_access allow localhost/a http_access allow external' /etc/squid/squid.conf
+
+Edit the configuration of the Squid proxy daemon, and add an acl and http access rule to block facebook.com.
+
+sudo vim /etc/squid/squid.conf
+Add:
+acl block_facebook dstdomain .facebook.com
+
+It tells Squid:
+“Create an ACL named block_facebook that matches any destination domain ending with facebook.com.”
+
+So it will match:
+
+facebook.com
+
+www.facebook.com
+
+m.facebook.com
+
+login.facebook.com
+
+any subdomain of facebook.com
+
+If you want to block or allow: http_access deny block_facebook  (in case we want back to allwo the access for FACEBOOK http_access allow block_facebook)
+
+
+
+Edit the configuration of the SSH server and re-enable password logins, but disable the SSH login for user root.
+
+sudo vim /etc/ssh/sshd_config
+
+change for  both:
+
+PasswordAuthentication yes   - so users will be able to connect with password
+PermitRootLogin no  - root user will not able to connect with ssh
+
+Always Test config file before restart:
+>sudo sshd -t
+
+Restart SSH Daemon:
+sudo systemctl restart sshd
+
+
+
+In the configuration file of the SSH server, change the maximum number of authentication attempts permitted per connection to 4.
+
+
+Modify at: 
+sudo vim /etc/ssh/sshd_config
+
+
+Modify to : MaxAuthTries 4
+
+Test config:
+
+sudo sshd -t
+
+Restart ssh daemon:
+
+sudo systemctl restart sshd
 
 
 
