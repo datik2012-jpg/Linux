@@ -353,3 +353,522 @@ bob@caleston-lp10 ~ ➜  sudo cfdisk /dev/vdd
 
 Syncing disks.
 
+////////////////////////Create and Configure File Systems //////////
+
+After we created partition we need to create file system
+Ubuntu is using EXT4 file systems
+RedHat linux family is using - XFS file system
+
+
+To format partition to XFS file system we can use:
+(mkfs - meaning make file system)
+>sudo mkfs.xfs /dev/sdb1  - for formating partition for XFS file system
+>sudo mkfs.ext4 /dev/sdb1  - for formating partition for EXT4 file system
+
+We can use some parameters if we do not want to creaete a DEFAULT file systems:
+
+>man mkfs.xfs  - to see the options for parameters
+
+
+>sudo fdisk -l   - to see the disks   (devices names and etc which we want to work today)
+
+
+
+>sudo mkfs.xfs -L "BackupVolume" /dev/sdb1  - will give the label during creating xfs file system in partition sdb1
+
+
+>sudo mkfs.xfs -i size=512 /dev/sdb1  - creates an XFS file system on the partition /dev/sdb1 with 512‑byte inodes.
+
+-i size=512 — sets the inode size to 512 bytes (default is usually 256). Larger inodes can store more extended attributes, useful for systems with heavy metadata usage.
+
+An inode (short for index node) is a fundamental data structure used by many Unix‑like file systems—including XFS, ext4, and others—to store metadata about a file.
+
+
+
+Force formating :
+sudo mkfs.xfs -f -i size=512 /dev/sdb1
+
+-f (force) — forces the creation even if the partition already contains a file system or appears to be in use. This bypasses safety checks, so it should be used only when you’re absolutely sure you want to overwrite existing data.
+
+
+
+>xfs   - to see the list of XFS utilities 
+
+These are XFS administrative and diagnostic utilities — specialized command‑line tools used to manage, inspect, and repair XFS file systems on Linux. Each serves a distinct purpose in maintaining disk health, performance, and metadata integrity.
+
+🔧 Commonly used XFS tools
+xfs_admin — change parameters of an existing XFS file system (like label or UUID).
+
+xfs_bmap — display block mapping for files (shows how data is laid out on disk).
+
+xfs_copy — clone an XFS file system to another device.
+
+xfs_db — low‑level debugging and examination tool for XFS structures.
+
+xfs_estimate — estimate space requirements before creating an XFS file system.
+
+xfs_freeze — temporarily freeze I/O on a file system (used for snapshots).
+
+xfs_fsr — defragment files to improve performance.
+
+xfs_growfs — expand an existing XFS file system to use more space.
+
+xfs_info — display geometry and configuration details of a mounted XFS file system.
+
+xfs_io — perform I/O operations and tuning tests on files.
+
+xfs_logprint — examine the internal log (journal) of an XFS file system.
+
+xfs_metadump / xfs_mdrestore — dump and restore metadata for debugging or recovery.
+
+xfs_mkfile — create files of a specified size (useful for testing).
+
+xfs_quota — manage disk quotas for users and groups.
+
+xfs_repair — check and repair corrupted XFS file systems.
+
+xfs_scrub / xfs_scrub_all — verify and repair metadata consistency online.
+
+xfs_spaceman — query and manage free space information.
+
+🧠 Less common or advanced tools
+xfs_ncheck — list files by inode number.
+
+xfs_rtcp — copy files efficiently using real‑time subvolume features.
+
+xfsdist‑bpfcc / xfsslower‑bpfcc — BPF‑based performance tracing tools for XFS operations.
+
+Together, these utilities form the XFS maintenance toolkit, enabling everything from routine monitoring to deep forensic recovery.
+
+
+
+to display Label name:
+
+>sudo xfs_admin -l /dev/asd1  - will output the label of the file system (if was set): lablel="BackupVolume"
+
+To change the lable:
+>sudo xfs_admin -L "DaniBackUpVolume" /dev/sdb1
+
+
+
+Default file system in Ubuntu is ext4 !!! The original command is (mke2fs - for dealing with ext4 file systems.SO both are the same)
+>man mkfs.ext4 - see the options   (so one of them is mke2fs which is the same and do the same)
+
+
+>mkfs.ext4  - to see the options for parameters to create EXT4 file system
+
+>sudo mkfs.ext4 /dev/sdb2  - to create default file sytem EXT4
+
+
+To pick up specific number for inodes:
+
+>sudo mkfs.ext4 -N 500000 /dev/sdb2   
+
+
+Open a manual for ext4:
+
+>man mkfs.ext4 
+
+displays detailed information about the ext2, ext3, or ext4 file system on the partition /dev/sdb2.
+>sudo tune2fs -l /dev/sdb2 
+
+Typical output includes
+Filesystem volume name and UUID
+
+Mount count and maximum mount count (used for automatic fsck checks)
+
+Last mount time, last write time, and last check time
+
+Filesystem features (like has_journal, extents, 64bit, etc.)
+
+Block size, inode size, and total blocks/inodes
+
+Reserved block count and percentage reserved for root
+
+Errors behavior (e.g., continue, remount-ro, or panic)
+
+🧠 Why it’s useful
+tune2fs -l helps you:
+
+Verify file system health and configuration.
+
+Check when automatic checks will occur.
+
+Confirm UUIDs for /etc/fstab entries.
+
+Inspect tuning parameters before modifying them.
+
+
+
+To change the LABEL for EXT4:
+
+>sudo tune2fs -L "SecondFS"  /dev/sdb2 
+
+Now we can see the LABEL in file systems for all sdb disk partitions:
+
+>sudp cfdisk /dev/sdb 
+
+///////////////Configure Systems to Mount Filesystems at or During Boot ////////////
+
+
+sudo mount /dev/vdb1 /mnt/ — attaches the partition /dev/vdb1 to the /mnt directory so you can access its contents.
+
+sudo touch /mnt/testfile — creates an empty file named testfile inside the mounted filesystem, proving write access works.
+
+ls -l /mnt/ — lists the file, confirming the mount is active and writable.
+
+lsblk — shows all block devices; /dev/vdb1 is correctly mounted at /mnt, while /dev/vdb2 and /dev/vdb3 remain unused.
+
+Unmount:
+>sudo unmount  /mnt/ 
+
+To validate it been unmounted:
+
+>lsblk 
+
+and see again empty directory at /nmt/:
+
+>ls /nmt/
+
+To do during a boot mounting:
+
+>sudo mkdir /mybackups/  - create a directory
+
+
+Do modification in the next file:
+
+>sudo vim /etc/fstab 
+
+/dev/vda2    /boot        ext4    defaults    0    1
+/dev/vdb1    /mybackups   xfs     defaults    0    2
+
+
+>sudo systemctl daemon-reload  - reload the daemon and the changes will be pick up automatically 
+
+>ls -l /mybackups/  - will show the file which we crated before
+
+To see the mounted dir to the partition run:
+
+>lsblk   - and you will see vdb` file system is mounted to   -> /mybackups
+
+
+>man fstab -  to get a help with parameters (static information about file system)
+
+>sudo vim /etc/fstab
+
+opens the filesystem table configuration file (/etc/fstab) in the Vim text editor with administrator privileges.
+
+/etc/fstab — the file that defines which disks and partitions are mounted automatically at boot, and where they’re mounted.
+
+Why it’s used
+You run this command when you want to:
+
+Add or modify mount entries (e.g., new disks, network shares).
+
+Change mount options (like defaults, noatime, or ro).
+
+Ensure filesystems mount automatically after reboot.
+
+After editing, you can test your changes safely with:
+
+>sudo mount -a  - to confirm there are no syntax errors before rebooting.
+
+
+//////////////////// SWAP configuration /////////
+
+>sudo vim /etc/fstab
+
+/dev/vdb3    none    swap    defaults    0    0
+
+/etc/fstab — the file that defines which disks and partitions are mounted automatically at boot, and where they’re mounted.
+
+What it means
+/dev/vdb3 — the device that will be used for swap.
+
+none — no mount point, because swap isn’t part of the filesystem hierarchy.
+
+swap — specifies the filesystem type as swap space.
+
+defaults — uses standard mount options.
+
+0 0 — disables dump and fsck checks (swap doesn’t need them).
+
+
+Why it’s important
+Swap acts as virtual memory, extending RAM by using disk space when physical memory runs low. It helps prevent out‑of‑memory crashes and keeps the system responsive under heavy load.
+
+
+To verify:sudo swapon -a  and sudo swapon --show
+
+
+Better to use UUID cause cables  connection or disk order can by physically changed:
+
+UUID=ec83bbc6-458e-490c-9188-2d5cc97a0e20 /boot ext4 defaults 0 1
+
+# /boot was on /dev/vda2 during curtin installation
+/dev/disk/by-uuid/ec83bbc6-458e-490c-9188-2d5cc97a0e20 /boot ext4 defaults 0 1
+
+/dev/vda2 /boot ext4 defaults 0 1
+
+What each line means
+UUID=… — uses the partition’s unique identifier, the most reliable method since device names can change.
+
+/dev/disk/by-uuid/ — another way to reference the same UUID path.
+
+/dev/vda2 — direct device reference, less stable if hardware order changes.
+
+/boot — mount point for kernel and bootloader files.
+
+ext4 — filesystem type.
+
+defaults — standard mount options.
+
+0 1 — tells fsck to check this partition first at boot.
+
+To check the UUID of the block device:
+
+>sudo lsblk /dev/vdb1
+
+/dev/vdb1: LABEL="FirstFS" UUID="a51d7731-b033-4c07-b171-628ae951ea01" BLOCK_SIZE="512" TYPE="xfs" PARTUUID="21b2fb38-0cb9-104b-bd17-a60362e5aacd"
+
+
+Breakdown
+/dev/vdb1 — the device name of the partition.
+
+LABEL="FirstFS" — the human‑readable label assigned when formatting (useful for identifying disks).
+
+UUID="a51d7731-b033-4c07-b171-628ae951ea01" — the unique identifier for this filesystem; preferred for /etc/fstab entries because it never changes even if device names do.
+
+BLOCK_SIZE="512" — the size of each block on disk, matching the inode size you set earlier.
+
+TYPE="xfs" — the filesystem type.
+
+PARTUUID="21b2fb38-0cb9-104b-bd17-a60362e5aacd" — the partition’s unique identifier at the GPT level (different from the filesystem UUID).
+
+To check all UUID and the partition block devices they are reffering to:
+
+ls -l /dev/disk/by-uuid/
+8bd4c364-a5ae-48ad-94ac-3241fc0e4426 -> ../../dm-0
+a39c80a1-a0c6-4ba2-a4a3-8a82058d8859 -> ../../vdb3
+a51d7731-b033-4c07-b171-628ae951ea01 -> ../../vdb1
+ced06898-a6ab-4d3a-9cea-09dd4d10a85a -> ../../vdb2
+ec83bbc6-458e-490c-9188-2d5cc97ae020 -> ../../vda2
+
+///////////////////////LAB create filesystem and mount //////
+
+What file do we need to edit to tell the Linux OS which filesystems it should automatically mount when it boots up?
+
+bob@caleston-lp10 ~ ➜  sudo cat /etc/fstab
+LABEL=cloudimg-rootfs   /        ext4   discard,errors=remount-ro       0 1
+LABEL=UEFI      /boot/efi       vfat    umask=0077      0 1
+
+
+
+We want to create an xfs filesystem on /dev/vdd1 with the label BackupVolume. What is wrong with this command?
+
+
+sudo mkfs.xfs -l "BackupVolume" /dev/vdd1
+
+
+
+
+A. The volume name is too long. 10 characters is the maximum limit and we used 12.
+
+
+B. The lowercase -l option is wrong. It should be -L, with an uppercase L.
+
+
+C. The -l option should go at the end. The command should be: sudo mkfs.xfs /dev/vdd1 -l "BackupVolume".
+
+
+D. The command mkfs.xfs is wrong. It should be mkfs-xfs.
+
+
+Answer: B. The lowercase -l option is wrong. It should be -L, with an uppercase L.
+
+
+Create an xfs filesystem with the label "DataDisk" on /dev/vdd.
+
+
+bob@caleston-lp10 ~ ✖ sudo mkfs.xfs -L "DataDisk" /dev/vdd
+meta-data=/dev/vdd               isize=512    agcount=4, agsize=131072 blks
+         =                       sectsz=512   attr=2, projid32bit=1
+         =                       crc=1        finobt=1, sparse=1, rmapbt=0
+         =                       reflink=1    bigtime=0 inobtcount=0
+data     =                       bsize=4096   blocks=524288, imaxpct=25
+         =                       sunit=0      swidth=0 blks
+naming   =version 2              bsize=4096   ascii-ci=0, ftype=1
+log      =internal log           bsize=4096   blocks=2560, version=2
+         =                       sectsz=512   sunit=0 blks, lazy-count=1
+realtime =none                   extsz=4096   blocks=0, rtextents=0
+Discarding blocks...Done.
+
+
+Create an ext4 filesystem with 2048 inodes on /dev/vde.
+
+bob@caleston-lp10 ~ ✦ ✖ sudo mkfs.ext4 -I 2048 -L "Dani" /dev/vde
+mke2fs 1.46.5 (30-Dec-2021)
+Discarding device blocks: done                            
+Creating filesystem with 524288 4k blocks and 131072 inodes
+Filesystem UUID: 12a863bc-31e2-43d4-9650-b0ca8b278672
+Superblock backups stored on blocks: 
+        32768, 98304, 163840, 229376, 294912
+
+Allocating group tables: done                            
+Writing inode tables: done                            
+Creating journal (16384 blocks): done
+Writing superblocks and filesystem accounting information: done 
+
+
+Validation:
+
+bob@caleston-lp10 ~ ✦ ✖ sudo dumpe2fs -h /dev/vde | grep "Inode count"
+dumpe2fs 1.46.5 (30-Dec-2021)
+Inode count:              2048
+
+
+Mount /dev/vdd in the /mnt/ directory.
+
+>sudo lsblk  - to see all disks and if they mounted
+
+bob@caleston-lp10 ~ ✦ ✖ sudo lsblk
+NAME    MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+vda     252:0    0   10G  0 disk 
+├─vda1  252:1    0  9.9G  0 part /
+├─vda14 252:14   0    4M  0 part 
+└─vda15 252:15   0  106M  0 part /boot/efi
+vdb     252:16   0    1M  0 disk /mnt/app-config
+vdc     252:32   0    1M  0 disk 
+vdd     252:48   0    2G  0 disk 
+vde     252:64   0    2G  0 disk 
+vdf     252:80   0    1G  0 disk 
+
+
+
+sudo mount /dev/vdd /mnt/
+
+Validation:
+
+bob@caleston-lp10 ~ ✦ ✖ sudo lsblk
+NAME    MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+vda     252:0    0   10G  0 disk 
+├─vda1  252:1    0  9.9G  0 part /
+├─vda14 252:14   0    4M  0 part 
+└─vda15 252:15   0  106M  0 part /boot/efi
+vdb     252:16   0    1M  0 disk /mnt/app-config
+vdc     252:32   0    1M  0 disk 
+vdd     252:48   0    2G  0 disk /mnt
+vde     252:64   0    2G  0 disk 
+vdf     252:80   0    1G  0 disk 
+
+Unmount the filesystem mounted in the /mnt/ directory.
+
+bob@caleston-lp10 ~ ✦ ✖ sudo umount /mnt
+
+bob@caleston-lp10 ~ ✦ ✖ sudo lsblk
+NAME    MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+vda     252:0    0   10G  0 disk 
+├─vda1  252:1    0  9.9G  0 part /
+├─vda14 252:14   0    4M  0 part 
+└─vda15 252:15   0  106M  0 part /boot/efi
+vdb     252:16   0    1M  0 disk /mnt/app-config
+vdc     252:32   0    1M  0 disk 
+vdd     252:48   0    2G  0 disk 
+vde     252:64   0    2G  0 disk 
+vdf     252:80   0    1G  0 disk
+
+Configure the system to automatically mount /dev/vde when it boots up. This partition has an ext4 filesystem on it. It should mount the filesystem to the /test directory. This directory does not exist. Make sure you create it first.
+
+Also, make sure this filesystem is checked on boot.
+
+
+For now, you do not need to reboot the system after making the required changes.
+
+
+
+Configure the system to automatically mount /dev/vde when it boots up. This partition has an ext4 filesystem on it. It should mount the filesystem to the /test directory. This directory does not exist. Make sure you create it first.
+
+Also, make sure this filesystem is checked on boot.
+
+
+For now, you do not need to reboot the system after making the required changes.
+
+check UUID of the /dev/vde:
+
+sudo blkid /dev/vde
+
+bob@caleston-lp10 ~ ✦ ✖ sudo blkid /dev/vde
+/dev/vde: UUID="0a6dba58-7342-4bef-9630-da655333491a" BLOCK_SIZE="4096" TYPE="ext4"
+
+now modify a file:
+sudo vim /etc/fstab
+
+UUID=0a6dba58-7342-4bef-9630-da655333491a   /home/bob/test   ext4   defaults   0   1
+
+Test: 
+sudo mount -a
+
+
+Configure the system to automatically use /dev/vdd as swap when it boots up.
+
+
+For now, you do not need to reboot the system after making the required changes as this might affect the next task.
+
+sudo dd if=/dev/vdd of=/swap bs=1M count=128 status=progress
+
+bob@caleston-lp10 ~ ✖ sudo dd if=/dev/vdd of=/swap bs=1M count=128 status=progress
+128+0 records in
+128+0 records out
+134217728 bytes (134 MB, 128 MiB) copied, 0.165476 s, 811 MB/s
+
+sudo chmod 600 /swap
+
+Format it:
+bob@caleston-lp10 ~ ➜  sudo mkswap /swap
+mkswap: /swap: warning: wiping old xfs signature.
+Setting up swapspace version 1, size = 128 MiB (134213632 bytes)
+no label, UUID=d0d2727a-1762-44cf-9924-2557a28913f1
+
+Enabling swap:
+sudo swapon /swap
+
+
+Previous steps didn't work cause: Even after wiping, some systems refuse to activate swap on a raw disk for safety reasons.
+Sp i have tried: 
+
+
+bob@caleston-lp10 ~ ✖ sudo mkswap /dev/vdd
+mkswap: /dev/vdd: warning: wiping old xfs signature.
+Setting up swapspace version 1, size = 2 GiB (2147479552 bytes)
+no label, UUID=125212a4-e09c-44be-a87e-0faac93be882
+
+sudo vim /etc/fstab
+
+bob@caleston-lp10 ~ ➜  sudo blkid /dev/vdd
+/dev/vdd: UUID="125212a4-e09c-44be-a87e-0faac93be882" TYPE="swap"
+
+add to the file:
+UUID=125212a4-e09c-44be-a87e-0faac93be882 none swap sw 0 0
+
+
+Change the label for /dev/vdd filesystem to SwapFS:
+
+check the type of file system :
+
+bob@caleston-lp10 ~ ➜  lsblk -f /dev/vdd
+NAME FSTYPE FSVER LABEL UUID                                 FSAVAIL FSUSE% MOUNTPOINTS
+vdd  swap   1           125212a4-e09c-44be-a87e-0faac93be882   
+
+
+bob@caleston-lp10 ~ ✖ sudo mkswap -L SwapFS /dev/vdd
+mkswap: /dev/vdd: warning: wiping old swap signature.
+Setting up swapspace version 1, size = 2 GiB (2147479552 bytes)
+LABEL=SwapFS, UUID=7a478249-48da-4b62-a43d-42c0f4d3e073
+
+Validation:
+
+bob@caleston-lp10 ~ ➜  lsblk -f /dev/vdd
+NAME FSTYPE FSVER LABEL  UUID                                 FSAVAIL FSUSE% MOUNTPOINTS
+vdd  swap   1     SwapFS 7a478249-48da-4b62-a43d-42c0f4d3e073  
+
+
