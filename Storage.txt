@@ -1332,3 +1332,148 @@ bob@caleston-lp10 ~ ➜  sudo exportfs -v
 /home           192.0.0.0/24(sync,wdelay,hide,no_subtree_check,sec=sys,ro,secure,root_squash,no_all_squash)
 
 
+////////////////Use Network Block Devices:NDB /////////////
+
+/dev/sda OR /dev/vda  - they are entire disks (first disk) sda - physical disk , vda - virtual
+
+/dev/sda1 OR /dev/vda1 - are first partition of the disk (sda OR vda)
+
+
+
+/dev/nbd0 is a Network Block Device (NBD) interface in Linux — it allows one server to use a remote disk as if it were a local block device. In the diagram, Server 1 accesses a disk from Server 2 over the network through this NBD connection, effectively mounting Server 2’s /dev/vda as /dev/nbd0 on Server 1.
+
+Device file: /dev/nbd0 is the first NBD device created by the kernel module nbd.
+
+Function: It acts as a proxy block device — data read/writes on /dev/nbd0 are transmitted over TCP/IP to a remote NBD server process.
+
+Usage: Commonly used for remote storage, disk mirroring, or testing distributed block systems.
+
+Analogy: Think of it like mounting a remote hard drive over the network, similar to how NFS mounts filesystems, but at the block level rather than the file level.
+
+So we have NDB Server - the server where DISK physically located and connected
+and we have NBD CLient - which is mounrin this disk and uses it (with remote connection)
+
+
+On Server install:
+>sudo ndb install ndb-server
+
+
+Open NDB Server configuration file:
+>sudo vim /etc/ndb-server/config
+
+(by default NDB Daemon will be running with ndb user - which is not have read and write priviligies to the disk )
+
+[generic]
+# If you want to run everything as root rather than the nbd user, you
+# may either say "root" in the two following lines, or remove them
+# altogether. Do not remove the [generic] section, however.
+#    user = nbd
+#    group = nbd
+    includedir = /etc/nbd-server/conf.d
+    allowlist = true
+# What follows are export definitions. You may create as much of them as
+# you want, but the section header has to be unique.
+#
+[partition2]
+    exportname=/dev/sda1
+~
+~
+~
+~
+
+
+Restart the service:
+>sudo sytsemctl restart ndb-server.service
+
+To get help from NDB how to configure the config file:
+>man 5 ndb-server
+
+
+# On Server 2 (exporting disk)
+nbd-server 10809 /dev/vda
+
+
+///////////////NDB Client server ////////
+
+>sudo apt install ndb-client  - this module extends Kernel functionality so that becomes able to handle remote Network Block Devices:
+
+>sudo modprobe ndb - module which extending (but need run it after each reboot)
+
+we need to tell to the Linux load this module on the BOOT:
+
+>sudo vim /etc/modules-load.d/modules.conf
+Write:
+nbd
+
+Attach the remote disk device to this system:
+
+>sudo ndb-client 127.0.0.1 -N partition2 
+
+Output:
+Negotiation: ..size = 2048MB
+Connected /dev/ndb0 
+
+So now if we do : /dev/ndb0 it will be using remote disk 
+
+
+Now need to mount this DISK and it's partition (on the client):
+>sudo mount /dev/ndb0 /mnt 
+
+>ls /mnt  - now we can see expected files and directories in that shared disk 
+
+DETACH the DISK first we need UMOUNT IT (when we do not need to use the shared disk anymore) :
+>sudo umount /mnt
+
+>lsblk   - to look existing block devices (we can see ndb0 not mounted and showing 0 size)
+
+DETACH the DISK:
+>sudo ndb-client -d /dev/ndb0    - detach the DISK from the CLIENT (run on the Client)
+
+Validate:
+>lsblk   - will show ndb0 0 Byte size  - which means the DISK is success disconnected
+
+We can connect it back and use domain name instead the IP:
+
+sudo nbd-client server2.example.com -N partition2
+
+Cause we set the NBD SERVER we know it's name of the export "partition2" but if we do not know:
+To export list of available NDB server with -l option and in the server should set allow_list=true in ndb configuration file:
+>sudo ndb-client -l 127.0.0.1   
+Output: partition2  - exactly the nema we need 
+
+
+
+List active NBD devices: lsblk | grep nbd
+Check NBD connections: sudo nbd-client -l
+Verify kernel-level connections: cat /sys/class/block/nbd*/pid
+Detailed device info: sudo fdisk -l | grep nbd
+Optional: check NBD server exports (Server side which is sharing the disk): sudo nbd-server -c /etc/nbd-server/config OR sudo cat /etc/nbd-server/config
+
+To tell which disks are remote (NBD) and which are local, you can check how each block device is registered in your system. Here’s how to distinguish them clearly:
+Identify NBD (remote) devices: lsblk -o NAME,TYPE,SIZE,MODEL
+
+Look for devices named /dev/nbd0, /dev/nbd1, etc.
+These are Network Block Devices — they represent disks connected over the network.
+
+You can confirm by checking:sudo nbd-client -l
+
+Identify local disks
+Local disks usually appear as:
+
+/dev/sda, /dev/sdb, /dev/vda, /dev/nvme0n1, etc.
+
+Their MODEL field will show a physical or virtual drive name (e.g., Samsung SSD, Virtio Block Device).
+
+You can verify with:sudo fdisk -l
+Local disks will have hardware details (vendor, serial, partitions).
+Remote NBD disks will show only size and partition info, without hardware metadata.
+
+
+
+
+The same example:
+# On Server 1 (connecting to remote disk)
+nbd-client server2.example.com 10809 /dev/nbd0
+
+
+
