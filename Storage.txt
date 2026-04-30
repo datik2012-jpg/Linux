@@ -872,3 +872,463 @@ NAME FSTYPE FSVER LABEL  UUID                                 FSAVAIL FSUSE% MOU
 vdd  swap   1     SwapFS 7a478249-48da-4b62-a43d-42c0f4d3e073  
 
 
+///////////////////////////////////Files System and Mount Options ///////
+
+>lsblk - show us not enough detailed information 
+
+What filesystem is mounted here?
+What are the mount options?
+
+>findmnt - will show us what is nounted in the system even not disks and memmory mounted ("proc" for example - which is not disk it is just virtual file system)
+
+>findmnt -t ex4t,xfs   -  to show us ONLY file system which are not virtual (real disks).What is not mounted bu existing  WILL BE NOT showed with this command!!!
+
+
+We can change the read write to the file systems when we mount it:
+
+>sudo mount -o ro /dev/vdb2 /mnt   - now the mounted file system will be only for READ option  (RW - read and write, R0 - read option only)
+
+>findmnt -t xfs,ext4 - we can see now ro appliied !!!
+
+Unmount:
+>sudo umount /mnt
+
+>sudo mount -o ro,noexec,n,nosuid /dev/vdb2 /mnt  - more option during a mounting (no option to execute the file - noexec and nosiud - block even root execution)
+Output:
+TARGET      SOURCE                                      FSTYPE  OPTIONS
+/           /dev/mapper/ubuntu--vg-ubuntu--lv           ext4    rw,relatime,seclabel
+├─/boot     /dev/vda2                                   ext4    rw,relatime,seclabel
+├─/mybackups /dev/vdb1                                  xfs     rw,relatime,seclabel,attr2,inode64,logbufs=8,logbsize=32k,noquota
+└─/mnt      /dev/vdb2                                   ext4    ro,nosuid,noexec,relatime,seclabel
+
+sudo mount -o rw,noexec,nosuid /dev/vdb2 /mnt
+# Output: mount: /mnt: /dev/sdb2 already mounted on /mnt.
+
+sudo mount -o remount,rw,noexec,nosuid /dev/vdb2 /mnt
+
+>man mount  - to see more options
+
+Some options specifi to the file systems ext4 or xfs only:
+
+>man xfs - to see the options 
+
+
+Example: sudo mount -o allocsize=32K /dev/vdb1 /mybackups
+
+-o allocsize=32K — sets the allocation size for the filesystem to 32 KB. This option is specific to XFS and controls the default block size used for file allocation, which can affect performance for workloads with many small or large files.
+
+XFS will preallocate 32 KB chunks whenever a file is extended.
+For example:
+
+If an application writes 4 KB at a time, XFS still reserves 32 KB on disk.
+
+The next writes fill that reserved space without needing new allocations.
+
+This reduces overhead from constant extent management and keeps files more contiguous.
+
+Choosing the right value
+Small files / random writes: smaller allocsize (e.g., 8K–32K) avoids wasted space.
+
+Large sequential writes (backups, media): larger allocsize (e.g., 256K–1M) improves throughput.
+
+SSD storage: moderate values (64K–128K) balance speed and space efficiency.
+
+
+How to mount the file system during a BOOT time with READ ONLY option:
+
+>sudo vim /etc/fstab
+Modify a file to have:
+
+/dev/vdb1 /mybackups xfs ro,noexec 0 2
+
+Reboot the daemon:
+>sudo systemctl reboot
+
+Validation: 
+>findmnt -t xfs,ext4
+
+TARGET        SOURCE                                      FSTYPE   OPTIONS
+/             /dev/mapper/ubuntu--vg-ubuntu--lv           ext4     rw,relatime,seclabel
+├─/boot       /dev/vda2                                   ext4     rw,relatime,seclabel
+└─/mybackups  /dev/vdb1                                   xfs      ro,noexec,seclabel,attr2
+
+/mybackups — XFS filesystem mounted read‑only (ro) with noexec (disables running binaries), seclabel (SELinux labeling), and attr2 (modern XFS attribute format).
+
+//////////////////LAB//////////////
+
+We have /dev/vda1 mounted in /.
+What are the mount options used with /dev/vda1?
+
+
+Example: rw or ro, logbufs, logbsize, etc.
+Identify all those options for /dev/vda1 and save them in the /root/moptions file.
+
+Will not provide enough detailed output:
+bob@caleston-lp10 ~ ➜  lsblk
+NAME    MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+vda     252:0    0   10G  0 disk 
+├─vda1  252:1    0  9.9G  0 part /
+├─vda14 252:14   0    4M  0 part 
+└─vda15 252:15   0  106M  0 part /boot/efi
+vdb     252:16   0    1M  0 disk /mnt/app-config
+vdc     252:32   0    1M  0 disk 
+vdd     252:48   0    2G  0 disk 
+vde     252:64   0    2G  0 disk 
+vdf     252:80   0    1G  0 disk
+
+but this command will provide more information:
+
+bob@caleston-lp10 ~ ✖ findmnt /
+TARGET SOURCE    FSTYPE OPTIONS
+/      /dev/vda1 ext4   rw,relatime,seclabel,discard,errors=remount-ro
+
+bob@caleston-lp10 ~ ✖ findmnt / | awk '{print $4}'
+OPTIONS
+rw,relatime,seclabel,discard,errors=remount-ro
+
+bob@caleston-lp10 ~ ➜  findmnt / | awk '{print $4}' > /root/moptions
+-bash: /root/moptions: Permission denied
+
+bob@caleston-lp10 ~ ✖ sudo sh -c "sudo findmnt / | awk '{print $4}' > /root/moptions"
+
+
+Unmount /dev/vdd1 from the /mnt/directory.
+
+bob@caleston-lp10 ~ ✖ sudo umount /mnt
+
+Validation:
+bob@caleston-lp10 ~ ➜  lsblk
+NAME    MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+vda     252:0    0   10G  0 disk 
+├─vda1  252:1    0  9.9G  0 part /
+├─vda14 252:14   0    4M  0 part 
+└─vda15 252:15   0  106M  0 part /boot/efi
+vdb     252:16   0    1M  0 disk /mnt/app-config
+vdc     252:32   0    1M  0 disk 
+vdd     252:48   0    2G  0 disk 
+└─vdd1  252:49   0    2G  0 part 
+vde     252:64   0    2G  0 disk 
+vdf     252:80   0    1G  0 disk 
+
+
+Mount /dev/vdd1 back into the /mnt/ directory. But this time, use these mount options: ro,noexec,nosuid.
+
+bob@caleston-lp10 ~ ➜  sudo mount -o ro,noexec,nosuid /dev/vdd1 /mnt
+
+
+/dev/vdd1 is currently mounted with the rooption, so it's read-only. Remount it with the rw option so it becomes read-write.
+
+Pre Validation the current detailed mount status:
+
+bob@caleston-lp10 ~ ✖ findmnt /mnt
+TARGET SOURCE    FSTYPE OPTIONS
+/mnt   /dev/vdd1 ext4   ro,nosuid,noexec,relatime,seclabel
+
+
+bob@caleston-lp10 ~ ✖ sudo mount -o remount,rw,nosuid,noexec,relatime,seclabel /dev/vdd1 /mnt
+
+Validation:
+bob@caleston-lp10 ~ ➜  findmnt /mnt
+TARGET SOURCE    FSTYPE OPTIONS
+/mnt   /dev/vdd1 ext4   rw,nosuid,noexec,relatime,seclabel
+
+
+
+Edit /etc/fstab so that the ext4 filesystem on /dev/vdd1 is automatically mounted into /mnt at boot time.
+But also make sure that this filesystem is mounted as read-only. Otherwise said, use these two mount options: defaults and ro.
+
+
+First let's UN MOUNT vdd1:
+
+bob@caleston-lp10 ~ ✖ lsblk
+NAME    MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+vda     252:0    0   10G  0 disk 
+├─vda1  252:1    0  9.9G  0 part /
+├─vda14 252:14   0    4M  0 part 
+└─vda15 252:15   0  106M  0 part /boot/efi
+vdb     252:16   0    1M  0 disk /mnt/app-config
+vdc     252:32   0    1M  0 disk 
+vdd     252:48   0    2G  0 disk 
+└─vdd1  252:49   0    2G  0 part /mnt
+vde     252:64   0    2G  0 disk 
+vdf     252:80   0    1G  0 disk 
+
+bob@caleston-lp10 ~ ➜  sudo unmount /mnt
+sudo: unmount: command not found
+
+bob@caleston-lp10 ~ ✖ sudo umount /mnt
+
+bob@caleston-lp10 ~ ➜  lsblk
+NAME    MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+vda     252:0    0   10G  0 disk 
+├─vda1  252:1    0  9.9G  0 part /
+├─vda14 252:14   0    4M  0 part 
+└─vda15 252:15   0  106M  0 part /boot/efi
+vdb     252:16   0    1M  0 disk /mnt/app-config
+vdc     252:32   0    1M  0 disk 
+vdd     252:48   0    2G  0 disk 
+└─vdd1  252:49   0    2G  0 part 
+vde     252:64   0    2G  0 disk 
+vdf     252:80   0    1G  0 disk 
+
+Modify a file:
+
+>sudo vim /etc/fstab
+
+/dev/vdd1 /mnt ext4 defaults,ro 0 2
+
+Test:
+sudo mount -a
+
+
+Verify:
+
+findmnt /mnt
+
+Need to do REBOOT TO SEE THE CAHNGES -no i do not see:
+
+bob@caleston-lp10 ~ ➜  findmnt /mnt
+TARGET SOURCE    FSTYPE OPTIONS
+/mnt   /dev/vdd1 ext4   ro,noexec,relatime,seclabel
+
+
+
+Why this is correct
+defaults → enables the standard mount options (rw, suid, dev, exec, auto, nouser, async)
+(rw is overridden by ro below*)
+
+ro → forces the filesystem to mount read‑only
+
+0 2 → standard dump/fsck settings
+
+Linux processes mount options left‑to‑right, so ro overrides the rw inside defaults.
+
+////////////////////Use Remote Filesystems :NFS ///////////
+
+NFS is a ptotocol which work between Linux machines
+
+NFS is one of the most important skills in Linux system administration because it lets you share directories across machines as if they were local. Let’s turn this into a clear, practical lesson you can follow step‑by‑step.
+
+Below is a complete, structured guide that teaches you how to set up an NFS server, export a directory, and mount it on a client.
+
+Setting NFS Server
+Setting NFS Clients 
+
+>sudo apt install nfs-kernel-server   -Install NFW server
+
+see the content of the file:
+>sudo vim /etc/exports
+
+ /srv/homes  hostname1(rw,sync,no_subtree_check)  hostname2(ro,sync,no_subtree_check)
+
+reakdown
+/srv/homes — the directory being shared.
+
+hostname1 — a client allowed to connect (can be an IP, hostname, or subnet).
+
+rw — read/write access.
+
+ro — read‑only access.
+
+sync — ensures data is written to disk before replying (safer).
+
+no_subtree_check — improves performance and avoids permission errors when exporting subdirectories.
+
+So here:
+
+hostname1 can read and write.
+
+hostname2 can only read.
+
+After editing /etc/exports, run:
+
+sudo exportfs -ra
+
+Then verify:
+
+sudo exportfs -v
+
+
+To see more specification run:
+>man exports  
+
+
+
+Modify a file for NFS server with our share:
+
+>sudo vim /etc/exports
+
+ /mnt 127.0.0.1(sync,wdelay,hide,no_subtree_check,sec=sys,ro,secure,root_squash,no_all_squash)
+ 
+ Examples:
+ 
+ # /etc/exports: the access control list for filesystems which may be exported to
+NFS clients. See exports (5).
+# Example for NFSv2 and NFSv3:
+# /srv/homes        hostname1(rw,sync,no_subtree_check) hostname2 (ro,sync,no_subtree_check)
+#
+# Example for NFSv4:
+# /srv/nfs4         gss/krb5i(rw,sync,fsid=0,crossmnt,no_subtree_check)
+# /srv/nfs4         gss/krb5i(rw,sync,no_subtree_check)
+#
+/etc 127.0.0.1(ro)
+
+NOtes for me:
+
+
+Option	Description
+/etc	The directory being exported via NFS.
+127.0.0.1	The client allowed to access it — the local machine itself.
+sync	Data is written to disk before replies are sent (safer).
+wdelay	The server may delay writes slightly to combine operations for efficiency.
+hide	Prevents clients from seeing sub-exports within this directory.
+no_subtree_check	Skips subtree verification for performance and fewer permission issues.
+sec=sys	Uses standard UNIX authentication (UID/GID).
+ro	Read-only access.
+secure	Requires requests from ports below 1024 (traditional security measure).
+root_squash	Maps remote root user to a non-privileged user (prevents root access).
+no_all_squash	Keeps normal users’ UIDs/GIDs intact (only root is squashed).
+
+So root_squash “squashes” that remote root user:
+
+It maps remote root (UID 0) to a non‑privileged user, usually nobody or nfsnobody.
+
+This means remote root can’t change ownership or permissions on server files.
+
+It’s a security measure — prevents root access from clients.
+
+This controls how non‑root users are handled.
+
+With no_all_squash (the default), only root is squashed — all other users keep their real UID/GID.
+
+With all_squash, every remote user is mapped to nobody, regardless of UID.
+
+That way:
+
+Normal users can work normally.
+
+Remote root can’t take over your server.
+
+To apply the changes:
+>sudo exports -r    -  r means re-export 
+
+To see the current exported share files:
+
+>sudo export -v    - v means verbose to show us what is active shared at the momement 
+
+///////////////////NFS Client part //////////
+
+>sudo apt install nfs-common   - package needed for nfs client
+
+The general syntax to mount a remote NFS share is:
+
+$ sudo mount IP_or_hostname_of_server:/path/to/remote/directory /path/to/local/directory
+
+
+
+Mount command:
+$ sudo mount 127.0.0.1:/etc /mnt
+$ sudo mount server1:/etc /mnt
+
+Unmount:
+
+Umount command:
+$ sudo umount /mnt
+
+Add the mounting NFS during BOOT:
+
+Auto-mounted at boot time:
+$ sudo vim /etc/fstab
+
+127.0.0.1:/etc/mnt nfs defaults 0 0
+
+
+Part	Meaning
+127.0.0.1	The IP address of the NFS server — here it’s the local machine (loopback).
+:/etc/mnt	The remote directory being shared by the NFS server.
+nfs	The filesystem type — Network File System.
+defaults	Standard mount options (read/write, async, etc.).
+0 0	Dump and fsck options — both disabled (no backup or filesystem check at boot).
+
+/////////////////////////LAB Remote NFS /////////
+
+From the listed options, select the path for default NFS configuration file
+
+bob@caleston-lp10 ~ ➜  sudo ls /etc/exports
+/etc/exports
+
+An NFS server is already running and active in the system. Configure the existing NFS server to share the /home directory in read-only mode. Allow access to any client within the CIDR range 10.0.0.0/24.
+
+
+Note: Make sure you reexport the configuration file using exportfs -r.
+
+/home 10.0.0.0/24(ro,sync,no_subtree_check)
+save and reexport the file:
+sudo exportfs -r
+
+
+
+Inspect the configuration file for the newly established NFS share on the /homedirectory. Identify the IP address specified for which access to /home is configured.
+open a file and check:
+sudo vim /etc/exports
+
+found there:
+/home 127.0.0.1(ro)
+
+For this step, manually mount the NFS share with the following properties:
+
+The IP of the NFS server is 127.0.0.1.
+The remote directory you should mount from 127.0.0.1 is /home.
+Mount this share in the local directory /mnt.
+
+sudo mount 127.0.0.1:/home /mnt
+
+Which file from the below options needs to be modified in order to automatically mount an NFS share at system startup?
+
+/etc/fstab
+
+In the previous step, we have manually mounted NFS share. For this step, configure the system to automatically mount an NFS share when it boots up:
+
+The share is on the server with the IP address 127.0.0.1.
+The remote directory you should mount from the NFS server is /home
+Mount it in the local directory /mnt
+Use defaults in the mount options
+
+sudo vim /etc/fstab
+127.0.0.1:/home /mnt nfs defaults 0 0
+
+The warning passed validation:
+bob@caleston-lp10 ~ ➜  sudo exportfs -r
+exportfs: /etc/exports [2]: Neither 'subtree_check' or 'no_subtree_check' specified for export "127.0.0.1:/home".
+  Assuming default behaviour ('no_subtree_check').
+  NOTE: this default has changed since nfs-utils version 1.0.x
+  
+
+Can a single entry in "/etc/exports" be used to share the same file directory with two different IPs by specifying them?
+
+YES like:   host() host()
+
+An NFS server is already running on this system. Configure the following share in a single entry.
+
+Share the /home directory with any client with an IP address in the CIDR range: 192.0.0.0/24. Make this share read-only.
+
+Share the same /home directory, but this time, with any client with the exact IP address 127.0.0.10. Make this share read-write. Besides the read-write option, also enable the no_root_squash option.
+
+
+Note: Make sure you reexport the configuration file using exportfs -r
+
+sudo vim /etc/exports
+
+/home 192.0.0.0/24(ro) 127.0.0.10(rw,no_root_squash)
+
+bob@caleston-lp10 ~ ✖ sudo exportfs -r
+exportfs: /etc/exports [2]: Neither 'subtree_check' or 'no_subtree_check' specified for export "127.0.0.1:/home".
+  Assuming default behaviour ('no_subtree_check').
+  NOTE: this default has changed since nfs-utils version 1.0.x
+  
+Validation:
+bob@caleston-lp10 ~ ➜  sudo exportfs -v
+/home           127.0.0.10(sync,wdelay,hide,no_subtree_check,sec=sys,rw,secure,no_root_squash,no_all_squash)
+/home           192.0.0.0/24(sync,wdelay,hide,no_subtree_check,sec=sys,ro,secure,root_squash,no_all_squash)
+
+
