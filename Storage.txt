@@ -1475,5 +1475,166 @@ The same example:
 # On Server 1 (connecting to remote disk)
 nbd-client server2.example.com 10809 /dev/nbd0
 
+///////////////////////////// Logical Volume Manger //////////
+
+Logical Volume Manager (LVM) is a Linux storage‑virtualization system that lets you create flexible, resizeable, and movable storage volumes on top of physical disks.
+
+What LVM is
+LVM is a storage virtualization layer built into Linux. Instead of working directly with fixed disk partitions, LVM lets you combine disks into pools of storage and carve out logical volumes that behave like virtual disks. This makes storage management far more dynamic and adaptable than traditional partitioning.
+
+
+>sudo apt install lvm2
+
+4 terms related to LVM:
+
+-PV
+-VG
+-LV
+-PE -physical extend 
+
+-PV   - Physical Volumes
+>sudo lvmdiskscan   - you can see which is in use with LVM physical volume - on the specific disk : /dev/sba3  <43GB LVM physical volume
+
+Create new PV (physical volume): 
+>sudo pvcreate /dev/sdc /dev/sdd   - create from two disks in this example two PV 
+
+To see the total size of PV:
+>sudo pvs 
+PV         VG          Fmt   Attr   PSize     PFree
+/dev/sda3  ubuntu-vg   lvm2  a--    <43.00g   21.50g
+/dev/sdc              lvm2  ---     5.00g     5.00g
+/dev/sdd              lvm2  ---     5.00g     5.00g
+
+This shows three physical volumes (/dev/sda3, /dev/sdc, /dev/sdd) formatted with LVM2.
+Only /dev/sda3 is part of the volume group ubuntu-vg, with about 43 GB total and 21.5 GB free.
+The other two disks are unallocated (no VG assigned) and each has 5 GB free.
+
+Now we need to tell how to use these PV  so add them to the VG (volume group):
+>sudo vgcreate my_volume /dev/sdc /dev/sdd  - we adding two PV to the volume VG.Both disk will be seen like one single disk (in our example 5gb +5gb = 10gb)
+
+we can add later more disks tot he server and add them later to VG in case we want to grow.It is like keeping single disk which we want keep growing with a time.
+so we can extend more and more whith adding new didsks
+
+for example add additional disks to the group(but ofcourse disk should be added before to the PV and then we can add it to the VG:
+>sudo pvcreate /dev/sde  - added new disk to the PV
+>sudo vgextend my_volume /dev/sde - adding the PV to the existing VG!!
+Validation we can see 3 PV connected now to the same group VG:
+>sudo vgs
+VG          #PV  #LV  #SN  Attr     VSize     VFree
+my_volume     3    0    0   wz--n-  <14.99g   <14.99g
+ubuntu-vg     1    1    0   wz--n-  <43.00g   21.50g
+
+This shows two volume groups in an LVM setup:
+
+my_volume — composed of 3 physical volumes, no logical volumes yet, total size about 15 GB, all free.
+
+ubuntu-vg — composed of 1 physical volume, 1 logical volume, total size about 43 GB, with 21.5 GB free.  - was created by DEFAULT when UBUNTU installed
+
+
+To remove the PV from VM we can do (but only if it does not have any data on it):
+>sudo vgreduce my_volume /dev/sde
+
+If we do not need the PV anymore we can remove it as well:
+
+>sudo pvremove /dev/sde 
+
+Now part is for - LV:
+
+VG is like a single disk on the vm ,what is the next step - correct add partitions!!! That exactly what LV does
+
+>sudo lvcreate --size 2g --name partition1 my_volume  - create partition with name partition1 size 2gb on the my_volume VM
+
+Inspect volume groups again we can see LV - has 1 partition:
+
+>sudo vgs 
+
+VG          #PV  #LV  #SN  Attr     VSize     VFree
+my_volume     2    1    0   wz--n-   9.99g     7.99g
+ubuntu-vg     1    1    0   wz--n-  <43.00g   21.50g
+
+Explanation:
+
+my_volume — consists of 2 physical volumes, 1 logical volume, total size ≈10 GB, with ≈8 GB free.
+
+ubuntu-vg — consists of 1 physical volume, 1 logical volume, total size ≈43 GB, with ≈21.5 GB free.
+
+Lets add additional partition:
+
+sudo lvcreate --size 6G --name partition2 my_volume
+
+This output from sudo lvs lists all logical volumes on the system:
+
+LV           VG          Attr       LSize
+partition1   my_volume   -wi-a-----  2.00g
+partition2   my_volume   -wi-a-----  6.00g
+ubuntu-lv    ubuntu-vg   -wi-ao---- <21.50g
+
+This output from "sudo vgs" lists the volume groups and their properties in your LVM setup.
+
+VG          #PV  #LV  #SN  Attr     VSize     VFree
+my_volume     2    2    0   wz--n-   9.99g     1.99g
+ubuntu-vg     1    1    0   wz--n-  <43.00g   21.50g
+
+
+In case we need to extend LVM (first logical volume prttion 1 which is 5GB only but we want to write 7 gb file on it but have only 5 free).
+So we can extend the volume one (so volume 2 will be kind shifting right ?)
+>sudo lvresize --extends 100%VG my_volume/partition1  - we say use 100% of the volume available for partition1 so it will be resized.It had 2GB before and now:
+
+>sudo lvs
+LV           VG          Attr       LSize
+partition1   my_volume   -wi-a-----  3.99g
+partition2   my_volume   -wi-a-----  6.00g
+ubuntu-lv    ubuntu-vg   -wi-ao---- <21.50g
+
+
+We can shrink it back to be 2gb if needed:
+>command to shrink to be back to 2GB?
+
+But empty volume is nothing to do with this - we need to create file sytem there!!
+
+
+Core Components
+LVM is built from three main building blocks:
+
+we can see the path to the volume:
+>sudo lvdisplay 
+
+--- Logical volume ---
+LV Path                /dev/ubuntu-vg/ubuntu-lv
+LV Name                ubuntu-lv
+VG Name                ubuntu-vg
+
+LV Path — the device path for the logical volume: /dev/ubuntu-vg/ubuntu-lv
+
+
+Create a file system for this LV volume with partition 1 which we created before:
+>sudo mkfs.ext4 /dev/my_volume/partition1
+
+When we have a file system on LV (so like some data on the volume) we should be more carefull with RESIZING 
+We can not use now the command like before: sudo lvresize --size 3g my_volume/partition1  -it still use 2gb and do not extend!!
+
+We need to use the command which is mention as well FILE SYSTEM  - "fs" !!
+>sudo lvresize --resizefs --size 3G my_volume/partition1
+
+To get a help with these commands or rimind you ,use :
+>man lvm 
+
+OR
+
+>vg + TAB +TAB 
+
+
+Physical Volumes (PV) — Actual disks or partitions prepared for LVM use. 
+
+Volume Groups (VG) — Pools of storage created by combining one or more PVs.
+
+Logical Volumes (LV) — Virtual block devices allocated from a VG; these are what you format with a filesystem and mount.
+
+This architecture allows the system to treat multiple disks as one flexible storage pool.
+
+
+
+
+
 
 
