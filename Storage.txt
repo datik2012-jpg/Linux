@@ -1492,6 +1492,16 @@ LVM is a storage virtualization layer built into Linux. Instead of working direc
 -LV
 -PE -physical extend 
 
+(correct order from Copilot:
+
+
+Step	LVM Term	What it is	When it’s created
+1	PV	Physical disk/partition prepared for LVM	You create it    - pvcreate /dev/vdd
+2	VG	Pool of storage made from PVs	You create it                - vgcreate vgdata /dev/vdd
+3	PE	Allocation units inside the VG	Auto-created by LVM          - You don’t create PEs manually — they are created automatically when the VG is created.
+4	LV	Usable logical disk	You create it                            - lvcreate --size 1.9G --name volume1 vgdata
+)
+
 -PV   - Physical Volumes
 >sudo lvmdiskscan   - you can see which is in use with LVM physical volume - on the specific disk : /dev/sba3  <43GB LVM physical volume
 
@@ -1504,6 +1514,8 @@ PV         VG          Fmt   Attr   PSize     PFree
 /dev/sda3  ubuntu-vg   lvm2  a--    <43.00g   21.50g
 /dev/sdc              lvm2  ---     5.00g     5.00g
 /dev/sdd              lvm2  ---     5.00g     5.00g
+
+VG part:
 
 This shows three physical volumes (/dev/sda3, /dev/sdc, /dev/sdd) formatted with LVM2.
 Only /dev/sda3 is part of the volume group ubuntu-vg, with about 43 GB total and 21.5 GB free.
@@ -1538,7 +1550,7 @@ If we do not need the PV anymore we can remove it as well:
 
 >sudo pvremove /dev/sde 
 
-Now part is for - LV:
+Now part is for - VG:
 
 VG is like a single disk on the vm ,what is the next step - correct add partitions!!! That exactly what LV does
 
@@ -1636,5 +1648,886 @@ This architecture allows the system to treat multiple disks as one flexible stor
 
 
 
+///////////////////LAB ///////////////////////////////////////////////////////
+
+Install lvm on this system.
+
+sudo apt install lvm2
+
+bob@caleston-lp10 ~ ➜  sudo apt install lvm2
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+lvm2 is already the newest version (2.03.11-2.1ubuntu5).
+0 upgraded, 0 newly installed, 0 to remove and 65 not upgraded.
 
 
+Add these two disks as Physical Volumes (PVs) to LVM: /dev/vdd and /dev/vde.
+
+
+
+bob@caleston-lp10 ~ ➜  sudo pvcreate /dev/vdd /dev/vde
+  Physical volume "/dev/vdd" successfully created.
+  Physical volume "/dev/vde" successfully created.
+
+bob@caleston-lp10 ~ ➜  lsblk    -  will not show LVM ,just to check which DISKS connected
+NAME    MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+vda     252:0    0   10G  0 disk 
+├─vda1  252:1    0  9.9G  0 part /
+├─vda14 252:14   0    4M  0 part 
+└─vda15 252:15   0  106M  0 part /boot/efi
+vdb     252:16   0    1M  0 disk /mnt/app-config
+vdc     252:32   0    1M  0 disk 
+vdd     252:48   0    2G  0 disk 
+vde     252:64   0    2G  0 disk 
+vdf     252:80   0    1G  0 disk 
+
+bob@caleston-lp10 ~ ➜  sudo pvs
+  PV         VG Fmt  Attr PSize PFree
+  /dev/vdd      lvm2 ---  2.00g 2.00g
+  /dev/vde      lvm2 ---  2.00g 2.00g
+  
+More detailed check:
+bob@caleston-lp10 ~ ✖ sudo pvdisplay
+  "/dev/vdd" is a new physical volume of "2.00 GiB"
+  --- NEW Physical volume ---
+  PV Name               /dev/vdd
+  VG Name               
+  PV Size               2.00 GiB
+  Allocatable           NO
+  PE Size               0   
+  Total PE              0
+  Free PE               0
+  Allocated PE          0
+  PV UUID               eGbifq-Ifka-FYkR-F4Cp-IA4q-oLvy-nM2Oud
+   
+  "/dev/vde" is a new physical volume of "2.00 GiB"
+  --- NEW Physical volume ---
+  PV Name               /dev/vde
+  VG Name               
+  PV Size               2.00 GiB
+  Allocatable           NO
+  PE Size               0   
+  Total PE              0
+  Free PE               0
+  Allocated PE          0
+  PV UUID               rSTTqw-f9nb-w7IA-SqL8-gdn3-QK4u-kd9KP1
+  
+  
+
+Use the correct command to display a list of Physical Volumes (PVs) used by LVM. What is the PSize of /dev/vde? Save the value in the /root/pvsize file.
+
+
+Note that, if the value is 10.00g, then the file content should be 10.
+
+bob@caleston-lp10 ~ ➜  sudo pvs
+  PV         VG Fmt  Attr PSize PFree
+  /dev/vdd      lvm2 ---  2.00g 2.00g
+  /dev/vde      lvm2 ---  2.00g 2.00g
+
+bob@caleston-lp10 ~ ➜  ^C
+
+bob@caleston-lp10 ~ ✖ sudo pvs /dev/vde
+  PV         VG Fmt  Attr PSize PFree
+  /dev/vde      lvm2 ---  2.00g 2.00g
+
+
+
+bob@caleston-lp10 ~ ➜  sudo pvs /dev/vde | awk '{print $5}'
+PSize
+2.00g
+
+bob@caleston-lp10 ~ ➜  sudo pvs --noheadings -o pv_size   - for all PVs
+  2.00g
+  2.00g
+
+
+bob@caleston-lp10 ~ ➜  sudo pvs --noheadings -o pv_size /dev/vde
+  2.00g
+
+bob@caleston-lp10 ~ ➜   sudo sh -c "sudo pvs --noheading -o pv_size /dev/vde > /root/pvsize"
+
+bob@caleston-lp10 ~ ➜  sudo cat /root/pvsize
+  2.00g
+  
+  OR
+  
+  bob@caleston-lp10 ~ ✖ sudo pvdisplay /dev/vde
+  "/dev/vde" is a new physical volume of "2.00 GiB"
+  --- NEW Physical volume ---
+  PV Name               /dev/vde
+  VG Name               
+  PV Size               2.00 GiB
+  Allocatable           NO
+  PE Size               0   
+  Total PE              0
+  Free PE               0
+  Allocated PE          0
+  PV UUID               rSTTqw-f9nb-w7IA-SqL8-gdn3-QK4u-kd9KP1
+  
+  
+bob@caleston-lp10 ~ ✖ sudo pvdisplay /dev/vde | grep "PV Size"
+  PV Size               2.00 GiB
+
+bob@caleston-lp10 ~ ➜  sudo pvdisplay /dev/vde | grep "PV Size" | awk '{print $3}'
+2.00  
+
+
+  
+Remove the /dev/vde physical volume from LVM.
+
+
+Validation before remove:
+
+bob@caleston-lp10 ~ ✖ sudo pvs
+  PV         VG Fmt  Attr PSize PFree
+  /dev/vdd      lvm2 ---  2.00g 2.00g
+  /dev/vde      lvm2 ---  2.00g 2.00g
+  
+  
+
+bob@caleston-lp10 ~ ✖ sudo pvremove /dev/vde
+  Labels on physical volume "/dev/vde" successfully wiped.
+
+bob@caleston-lp10 ~ ➜  sudo pvs
+  PV         VG Fmt  Attr PSize PFree
+  /dev/vdd      lvm2 ---  2.00g 2.00g
+  
+
+
+Create a Volume Group (VG) named volume1. It should be created on Physical Volume: /dev/vdd.
+
+
+
+bob@caleston-lp10 ~ ✖ sudo fdisk -l /dev/vdd
+Disk /dev/vdd: 2 GiB, 2147483648 bytes, 4194304 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+
+bob@caleston-lp10 ~ ➜  sudo pvs    - SHOW PV not VG !!!!
+  PV         VG Fmt  Attr PSize PFree
+  /dev/vdd      lvm2 ---  2.00g 2.00g
+
+Show VG :
+bob@caleston-lp10 ~ ✖ sudo vgs  
+(nothing at the moment) - no virtual groups at the moment
+  
+
+bob@caleston-lp10 ~ ✖ sudo vgcreate volume1 /dev/vdd
+  Volume group "volume1" successfully created
+ 
+ 
+Validation of created VG - virtual group:
+bob@caleston-lp10 ~ ✖ sudo vgs
+  VG      #PV #LV #SN Attr   VSize  VFree 
+  volume1   1   0   0 wz--n- <2.00g <2.00g 
+  
+  
+  
+ Imagine that our volume group volume1 is running out of free space. It currently uses /dev/vdd to store data. Add /dev/vde to this volume group so that we gain more usable storage space.
+ 
+ See all VGs existing:
+ 
+ bob@caleston-lp10 ~ ✖ sudo vgs
+  VG      #PV #LV #SN Attr   VSize  VFree 
+  volume1   1   0   0 wz--n- <2.00g <2.00g
+  
+  OR
+  
+  bob@caleston-lp10 ~ ✖ sudo vgdisplay
+  --- Volume group ---
+  VG Name               volume1
+  System ID             
+  Format                lvm2
+  Metadata Areas        1
+  Metadata Sequence No  1
+  VG Access             read/write
+  VG Status             resizable
+  MAX LV                0
+  Cur LV                0
+  Open LV               0
+  Max PV                0
+  Cur PV                1
+  Act PV                1
+  VG Size               <2.00 GiB
+  PE Size               4.00 MiB
+  Total PE              511
+  Alloc PE / Size       0 / 0   
+  Free  PE / Size       511 / <2.00 GiB
+  VG UUID               xkuRdb-Wobz-oTj0-gsU2-TUck-evh7-z25ERy
+  
+  Need to add to the EXISTING volume1 group - so need to extend!!
+  
+  BUt the case is /dev/vde not even in the LVM (cause we have removed it before - so need first to add it to LVM so need to add tot he PV first)
+  Add to the PV step:
+  bob@caleston-lp10 ~ ➜  sudo pvcreate /dev/vde
+  Physical volume "/dev/vde" successfully created.
+  
+  Now we can see it been added to the PV but not to the group yet:
+  
+  bob@caleston-lp10 ~ ✖ sudo pvs
+  PV         VG      Fmt  Attr PSize  PFree 
+  /dev/vdd   volume1 lvm2 a--  <2.00g <2.00g
+  /dev/vde           lvm2 ---   2.00g  2.00g
+  
+  
+  Add vde to existing virtual group - volume1:
+  
+  bob@caleston-lp10 ~ ✖ sudo vgextend volume1 /dev/vde 
+  Volume group "volume1" successfully extended
+  
+  Validation:
+  
+  bob@caleston-lp10 ~ ✖ sudo vgs
+  VG      #PV #LV #SN Attr   VSize VFree
+  volume1   2   0   0 wz--n- 3.99g 3.99g
+
+bob@caleston-lp10 ~ ➜  sudo pvs
+  PV         VG      Fmt  Attr PSize  PFree 
+  /dev/vdd   volume1 lvm2 a--  <2.00g <2.00g
+  /dev/vde   volume1 lvm2 a--  <2.00g <2.00g
+  
+  
+  
+ Remove /dev/vde from the volume group volume1.
+  
+  bob@caleston-lp10 ~ ✖ sudo pvs
+  PV         VG      Fmt  Attr PSize  PFree 
+  /dev/vdd   volume1 lvm2 a--  <2.00g <2.00g
+  /dev/vde   volume1 lvm2 a--  <2.00g <2.00g
+
+bob@caleston-lp10 ~ ➜  sudo vgreduce volume1 /dev/vde
+  Removed "/dev/vde" from volume group "volume1"
+  
+  
+Use the command that displays all of the volume groups. What is the VSize of volume1?
+
+Save the respective value in the /root/volume1 file.
+
+
+Note that, if the value is 10.00m, then the file content should be 10.00m. 
+
+Show virtual groups:
+bob@caleston-lp10 ~ ➜  sudo vgs
+  VG      #PV #LV #SN Attr   VSize  VFree 
+  volume1   1   0   0 wz--n- <2.00g <2.00g
+
+bob@caleston-lp10 ~ ➜  sudo vgs volume1
+  VG      #PV #LV #SN Attr   VSize  VFree 
+  volume1   1   0   0 wz--n- <2.00g <2.00g
+  
+  BETTER:
+  
+  bob@caleston-lp10 ~ ✖ sudo sh -c "sudo vgs volume1 | tail -1 | awk '{print \$7}' > /root/volume1"
+
+bob@caleston-lp10 ~ ➜  sudo cat /root/volume1
+<2.00g
+
+
+
+Create a Logical Volume (LV). It should have these properties:
+
+
+1. The size of the LV should be 0.5 Gigabytes.
+
+2. Its name should be smalldata.
+
+3. The logical volume should be created on the volume group named volume1.
+
+Validation if we have any LVs:
+bob@caleston-lp10 ~ ✖ sudo lvs
+Nothing
+
+>sudo lvcreate --size 0.5g --name smalldata volume1  - create partition with name smalldata size 0.5gb on the volume1 virtial group
+
+bob@caleston-lp10 ~ ✖ sudo lvcreate --size 0.5g --name smalldata volume1
+  Logical volume "smalldata" created.
+  
+bob@caleston-lp10 ~ ✖ sudo lvs
+  LV        VG      Attr       LSize   Pool Origin Data%  Meta%  Move Log Cpy%Sync Convert
+  smalldata volume1 -wi-a----- 512.00m     
+  
+  
+  
+Resize the Logical Volume called smalldata to 752 MB.
+This logical volume resides on the volume group called volume1.
+
+
+bob@caleston-lp10 ~ ✖ sudo lvresize -L 752M /dev/volume1/smalldata
+  Size of logical volume volume1/smalldata changed from 512.00 MiB (128 extents) to 752.00 MiB (188 extents).
+  Logical volume volume1/smalldata successfully resized.
+
+bob@caleston-lp10 ~ ➜  sudo lvs
+  LV        VG      Attr       LSize   Pool Origin Data%  Meta%  Move Log Cpy%Sync Convert
+  smalldata volume1 -wi-a----- 752.00m 
+  
+  
+  
+Create an XFS filesystem on the logical volume called smalldata.
+This logical volume exists on the volume group called volume1.
+
+sudo mkfs.xfs /dev/volume1/smalldata
+
+bob@caleston-lp10 ~ ✖ sudo mkfs.xfs /dev/volume1/smalldata
+meta-data=/dev/volume1/smalldata isize=512    agcount=4, agsize=48128 blks
+         =                       sectsz=512   attr=2, projid32bit=1
+         =                       crc=1        finobt=1, sparse=1, rmapbt=0
+         =                       reflink=1    bigtime=0 inobtcount=0
+data     =                       bsize=4096   blocks=192512, imaxpct=25
+         =                       sunit=0      swidth=0 blks
+naming   =version 2              bsize=4096   ascii-ci=0, ftype=1
+log      =internal log           bsize=4096   blocks=1566, version=2
+         =                       sectsz=512   sunit=0 blks, lazy-count=1
+realtime =none                   extsz=4096   blocks=0, rtextents=0
+Discarding blocks...Done.
+
+
+Destroy/Remove the Logical Volume called smalldata.
+
+IF it was mounted need to UNMOUT BEFORE we remove: sudo umount /dev/volume1/smalldata
+
+
+bob@caleston-lp10 ~ ✖ sudo lvdisplay
+  --- Logical volume ---
+  LV Path                /dev/volume1/smalldata
+  LV Name                smalldata
+  VG Name                volume1
+  LV UUID                wxyecB-081y-H6GT-C6EJ-hdQW-fU7Q-bowBJP
+  LV Write Access        read/write
+  LV Creation host, time caleston-lp10, 2026-05-03 07:54:44 +0000
+  LV Status              available
+  # open                 0
+  LV Size                752.00 MiB
+  Current LE             188
+  Segments               1
+  Allocation             inherit
+  Read ahead sectors     auto
+  - currently set to     256
+  Block device           253:0
+   
+
+bob@caleston-lp10 ~ ➜  sudo lvremove /dev/volume1/smalldata
+Do you really want to remove and DISCARD active logical volume volume1/smalldata? [y/n]: y
+  Logical volume "smalldata" successfully removed
+  
+  
+  If you want to skip the confirmation:
+  sudo lvremove -y /dev/volume1/smalldata
+
+
+bob@caleston-lp10 ~ ➜  sudo lvdisplay
+
+or
+bob@caleston-lp10 ~ ✖ sudo lvs
+
+////////////////////////Monitor Storage Performance //////////
+
+
+Shows overall system activity
+
+Includes CPU, memory, processes, load average
+
+>top
+
+A more advanced, colorful, interactive version of top
+
+Shows CPU, RAM, swap, processes, tree view
+
+Easier to read and navigate
+
+Not always installed by default - sudo apt install htop
+
+
+>htop
+
+
+
+Storage  - how to monitor a storage ?
+
+>sudo apt install sysstat  -this contains few system statistic utilities - IOSTAT and PIDSTAT
+
+iostat - i/o statistics 
+pidstat - process id staticstics
+
+
+
+Mimic :
+
+dd if=/dev/zero of=DELETEME bs=1 count=1000000 oflag=dsync &
+
+
+Part	Meaning
+dd	A low-level data copying utility used for writing raw data between files or devices.
+if=/dev/zero	Input file — /dev/zero generates continuous null bytes (zeros).
+of=DELETEME	Output file — the data will be written into a file named DELETEME.
+bs=1	Block size — each write operation handles 1 byte at a time.
+count=1000000	Number of blocks — 1,000,000 bytes total (≈1 MB).
+oflag=dsync	Forces synchronous writes — ensures each write is physically committed to disk before continuing.
+&	Runs the command in the background, freeing the terminal for other tasks.
+
+
+This command creates a 1 MB file filled with zeros, named DELETEME, and writes it synchronously to disk. Because of dsync, it’s slower but ensures data integrity — useful for testing disk performance or simulating write load.
+
+
+
+Now we can see how storage device is used:
+
+>iostat 1   - i/o storage device every second statistics 
+
+avg-cpu:  %user  %nice  %system  %iowait  %steal  %idle
+          0.00   0.00    0.92     8.69     0.00    90.39
+
+Device     tps     kB_read/s  kB_wrtn/s  kB_dscd/s  kB_read  kB_wrtn  kB_dscd
+dm-0      784.16     0.00     2514.85     0.00       0       2540     0
+sda       622.77     0.00     2510.89     0.00       0       2536     0
+
+
+%user — CPU time spent on user processes (0.00 %)
+
+%system — CPU time spent on kernel/system tasks (≈1 %)
+
+%iowait — Time waiting for I/O (≈8–9 %)
+
+%idle — CPU idle time (≈90 %)
+
+🟢 Interpretation: The CPU is mostly idle, but there’s noticeable I/O wait, meaning the system is waiting on disk operations.
+
+
+tps — Transactions per second (I/O operations per second)
+
+kB_wrtn/s — Write throughput in kilobytes per second
+
+dm-0 and sda — Both are actively writing data (~2.5 MB/s)
+
+nbd0 — No activity (0 TPS)
+
+🟢 Interpretation: The system is performing continuous write operations on dm-0 and sda, likely from a background process such as your earlier dd if=/dev/zero ... command.
+
+
+Cntr + C to step ou the program (we have seen dm-0 and sda — Both are actively writing data (~2.5 MB/s) AND WE WANT PROCEED WITH INVESTIGATIONS)
+
+<pidstat -d   -    d means devices 
+
+
+PID	Command	Read (kB/s)	Write (kB/s)	Notes
+1274	bash	0.97	0.00	Minimal read activity — typical for an idle shell.
+1411	dd	0.04	75.50	Heavy write activity — matches your earlier dd if=/dev/zero ... test writing zeros to disk.
+1418	pidstat	0.03	0.00	Reading a bit while collecting stats.
+
+
+
+Column	Meaning
+Time	When the sample was taken (07:09:35 AM).
+UID	User ID — all processes here belong to user 1000.
+PID	Process ID — unique identifier for each process.
+kB_rd/s	Kilobytes read per second.
+kB_wr/s	Kilobytes written per second.
+kB_ccwr/s	Cancelled write requests per second (usually 0).
+iodelay	I/O delay time (in jiffies) — 0 means no delay.
+Command	The process name.
+
+
+Perfect — this screenshot shows the pidstat -d 1 command running with a 1‑second interval, which means it’s reporting disk I/O activity every second.
+
+
+
+Time	PID	Command	Read (kB/s)	Write (kB/s)	Notes
+07:12:10	1411	dd	0.00	592.16	The dd process is writing ~592 kB/s to disk.
+07:12:11	1411	dd	0.00	592.16	Consistent write throughput — steady disk write load.
+
+
+What adout dm-0 ? (remid you: dm-0 and sda — Both are actively writing data (~2.5 MB/s))
+
+>sudo dmsetup info /dev/dm-0 
++ lsblk   - and we can see it is UBUNTU which was installed on the LVM - Application → dm-0 (logical volume) → sda (physical disk)
+)
+
+Every write to / (your root filesystem) goes through dm-0, which in turn writes to sda.
+So iostat reports I/O on both devices — one logical, one physical — because they’re part of the same I/O path.
+
+Conslusion: dd - is a process which is writing to /dev/sda - first storage divice in the system 
+the PID of dd is 1411
+
+Or we can use the next command to see which command started our process 1411:
+>ps 1141
+
+jeremy@kodekloud:~$ ps 1411
+  PID TTY      STAT   TIME COMMAND
+ 1411 pts/0    D      0:28 dd if=/dev/zero of=DELETEME bs=1 count=1000000 oflag=dsync
+jeremy@kodekloud:~$
+
+So, the process is actively performing a synchronous disk‑write test, which explains the I/O activity you saw earlier in iostat and pidstat.
+
+>kill 1141 - kill the process 
+>kill -9 1141 - terminate gracefully (use like last resort)
+
+
+Again more commnads:
+
+>iostat -d  - show only device utilization report 
+
+>iostat -h  - to display in human readable format  (adjust in MB,KB the data instead of long numbers)
+
+>pidstat -d --human - to see the stat in more human format 
+
+>iostat -p ALL - to see all pertitions on devices(disks) in use
+or for specific device:
+>iostat -p sda  - for device (sda only)
+
+
+Device	tps	kB_read/s	kB_wrtn/s	kB_dscd/s	kB_read	kB_wrtn	kB_dscd
+sda	165.84	107.20	660.57	0.00	273470	1685184	0
+sda1	0.03	0.10	0.00	0.00	260	0	0
+sda2	0.08	2.26	0.06	0.00	5753	164	0
+sda3	165.69	103.95	660.50	0.00	265201	1685020	0
+
+iostat -p sda, which provides detailed disk I/O statistics for the physical device sda and its partitions. Let’s interpret what’s happening here.
+
+>man iostat - to check the command options
+or
+>man pidstat 
+
+//////////////////Create Mange and Diagnose Advanced Filesystems Permissions ////////////////
+
+ACL - access control list abd Attributes
+
+When we use this command we can see next information about the file - format with detailed metadata.:
+>ls -l 
+
+total 0
+-rw-rw-r-- 1 alex staff 0 May 23 05:56 file1
+-rw-rw-r-- 1 alex staff 0 May 23 05:56 file2
+-rw-rw-r-- 1 alex staff 0 May 23 05:56 file3
+
+So if we login with Dani user and add him to the group it will get READ and WRITE access to 3 files .And if we want to gibe only to oen specific file - file3 but without take the access from others or from the other user which created this file3
+To do this we need ACL!!
+
+Create a file3 :
+sudo sh -c 'echo "This is the file content" > file3'
+
+We can see alex is the owner at the moment:
+ls -l file3
+-rw-rw-r-- 1 alex staff 25 May 23 06:18 file3
+
+User dani can not write to that file bt can read.
+
+ACL can help us with providing more general permission like DANI can WRITE and READ ,Jane can READ, ALEX can WRITE and Execute:
+
+Need to install ACL first:
+>sudo apt install acl 
+
+to add the user to ACL:
+
+>sudo setfacl --modify user:jeremy:rw file3 - if you want to add all permissions (rwx)
+
+Now if we check ls -l we can see + in the file3 which we added ACL:
+total 4
+-rw-rw-r--  1 alex staff  0 May 23 05:56 file1
+-rw-rw-r--  1 alex staff  0 May 23 05:56 file2
+-rw-rw-r--+ 1 alex staff 29 May 23 06:23 file3
+
+How to inspect ACLs
+
+>getfacl file3   - and we can see jeremy get "rw"
+
+# file: file3
+user::rw-
+user:alex:rw-
+user:jeremy:rw-
+group::rw-
+mask::rw-
+other::r--
+
+
+We do not want  manually to add ACL per user !!It is overkill for us so we can add a MASK.
+
+
+Mask limits permission to READ only: 
+
+Even though jeremy and staff have rw- permissions in their ACL entries, the mask restricts them to read‑only (r--).
+That’s why the output shows #effective:r-- — the mask overrides their write access.
+
+>sudo setfacl --modify mask:r file3
+>getfacl file3
+
+# file: file3
+# owner: alex
+# group: staff
+user::rw-
+user:jeremy:rw-              #effective:r--
+group::rw-                   #effective:r--
+mask::r--
+
+To restore write access:
+sudo setfacl --modify mask:rw file3
+
+For GROUPS add ACL:
+sudo setfacl --modify group:sudo:rw file3
+
+getfacl file3
+
+# file: file3
+# owner: alex
+# group: staff
+user::rw-
+group::rw-
+group:sudo:rw-
+mask::rw-
+other::r--
+
+To remove the ACL for specific use:
+sudo setfacl --modify user:jeremy:--- file3
+
+or REMOVE from ACL:
+sudo setfacl --remove user:jeremy file3
+
+or REMOVE from sudo group:
+
+sudo setfacl --remove group:sudo file3
+
+To remove all ACL entries:
+sudo setfacl --remove-all file3
+
+
+To applly ACL to directory need to do it RECURSIVERY and when need RECURSEVLY to remove as well for the group:
+mkdir dir1
+setfacl --recursive -m user:jeremy:rwx dir1/
+
+
+/////////////////Allow to add only new content to the file BUT not allowing to delete the current content ////
+sudo chattr +a newfile   - append only 
+Once set, the file cannot be overwritten or deleted — only appended to.
+
+to remove the APPEND to the file:
+>sudo chattr -a newfile
+
+File can not be renamed ,deleted or edited - mkaes the file immutable:
+>sudo chattr +i myfilename 
+
+
+To check the attr:
+>lsattr myfile 
+----i--------e------- newfile
+
+or for entire directory list file attributes:
+
+>lsattr 
+
+-----------------e------- ./file3
+-----------------e------- ./file2
+-----------------i------- ./newfile
+-----------------e------- ./dir1
+-----------------e------- ./file1
+
+
+To remove the attribute:
+sudo chattr -i newfile
+
+>man chattr  - to see more options
+
+///////////////////////////LAB /////////////
+
+Which one of these is also called a mirrored array?
+
+RAID 1 
+
+What command can you use to view a summary status of your RAID arrays?
+
+bob@caleston-lp10 ~ ➜  cat /proc/mdstat
+Personalities : [linear] [multipath] [raid0] [raid1] [raid6] [raid5] [raid4] [raid10] 
+unused devices: <none>
+
+In your /home/bob directory, you will find a file named archive. List the ACL permissions associated with this file.
+
+What permissions are listed for john in this ACL?
+
+sudo apt install acl
+
+
+bob@caleston-lp10 ~ ✖ getfacl /home/bob/archive
+getfacl: Removing leading '/' from absolute path names
+# file: home/bob/archive
+# owner: root
+# group: root
+user::rw-
+user:john:r--
+group::r--
+mask::r--
+other::r--
+
+Create a level 1 RAID array, at /dev/md0, with two devices: /dev/vdd and /dev/vde.
+
+
+mdadm is already installed in your system which is used for creating, managing, and monitoring RAID devices using the md driver.
+
+Note: You now have a mirrored RAID 1 array at /dev/md0, providing redundancy — data written to one disk is automatically duplicated on the other.
+
+
+
+Verify a disks and Ensure /dev/vdd and /dev/vde exist and are not mounted or in use.
+>sudo fdisk -l
+
+Disk /dev/vdd: 2 GiB, 2147483648 bytes, 4194304 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+
+
+Disk /dev/vde: 2 GiB, 2147483648 bytes, 4194304 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+
+
+not mounted:
+
+bob@caleston-lp10 ~ ✦ ✖ lsblk
+NAME    MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+vda     252:0    0   10G  0 disk 
+├─vda1  252:1    0  9.9G  0 part /
+├─vda14 252:14   0    4M  0 part 
+└─vda15 252:15   0  106M  0 part /boot/efi
+vdb     252:16   0    1M  0 disk /mnt/app-config
+vdc     252:32   0    1M  0 disk 
+vdd     252:48   0    2G  0 disk 
+vde     252:64   0    2G  0 disk 
+vdf     252:80   0    1G  0 disk 
+
+bob@caleston-lp10 ~ ✦ ✖ sudo mdadm --create /dev/md0 --level=1 --raid-devices=2 /dev/vdd /dev/vde
+mdadm: Note: this array has metadata at the start and
+    may not be suitable as a boot device.  If you plan to
+    store '/boot' on this device please ensure that
+    your boot-loader understands md/v1.x metadata, or use
+    --metadata=0.90
+Continue creating array? y
+mdadm: Defaulting to version 1.2 metadata
+mdadm: array /dev/md0 started.
+
+
+bob@caleston-lp10 ~ ✦ ✖ cat /proc/mdstat
+Personalities : [linear] [multipath] [raid0] [raid1] [raid6] [raid5] [raid4] [raid10] 
+md0 : active raid1 vde[1] vdd[0]
+      2094080 blocks super 1.2 [2/2] [UU]
+      
+unused devices: <none>
+
+Save the configuration:
+
+sudo mdadm --detail --scan | sudo tee -a /etc/mdadm/mdadm.conf
+sudo update-initramfs -u
+
+Create a filesystem and mount:
+sudo mkfs.ext4 /dev/md0
+sudo mkdir /mnt/raid1
+sudo mount /dev/md0 /mnt/raid1
+
+Verify:
+df -h /mnt/raid1
+sudo mdadm --detail /dev/md0
+
+
+
+In your /home/bob directory, you will find a file named specialfile. Add an ACL permission to this file so that the user called john can read and write to it.
+
+Before lets look ACL:
+bob@caleston-lp10 ~ ✦ ✖ getfacl /home/bob/specialfile
+getfacl: Removing leading '/' from absolute path names
+# file: home/bob/specialfile
+# owner: root
+# group: root
+user::rw-
+group::r--
+other::r--
+
+Adding to john read and write acl:
+
+sudo setfacl --modify user:john:rw /home/bob/specialfile
+
+Validation after adding:
+bob@caleston-lp10 ~ ✦ ✖ getfacl /home/bob/specialfile
+getfacl: Removing leading '/' from absolute path names
+# file: home/bob/specialfile
+# owner: root
+# group: root
+user::rw-
+user:john:rw-
+group::r--
+mask::rw-
+other::r--
+
+From the file called specialfile, remove the ACL permissions for the user called john.
+
+bob@caleston-lp10 ~ ✦ ✖ sudo setfacl --modify user:john:--- /home/bob/specialfile
+
+bob@caleston-lp10 ~ ✦ ➜  getfacl /home/bob/specialfile
+getfacl: Removing leading '/' from absolute path names
+# file: home/bob/specialfile
+# owner: root
+# group: root
+user::rw-
+user:john:---
+group::r--
+mask::r--
+other::r--
+
+
+To the file called specialfile, add an ACL permission for the group called mail. The mail group should get permissions to read and execute this file.
+
+
+bob@caleston-lp10 ~ ✦ ➜  getfacl /home/bob/specialfile
+getfacl: Removing leading '/' from absolute path names
+# file: home/bob/specialfile
+# owner: root
+# group: root
+user::rw-
+user:john:---
+group::r--
+mask::r--
+other::r--
+
+
+bob@caleston-lp10 ~ ✦ ➜  sudo setfacl --modify group:mail:rx /home/bob/specialfile
+
+bob@caleston-lp10 ~ ✦ ➜  getfacl /home/bob/specialfile
+getfacl: Removing leading '/' from absolute path names
+# file: home/bob/specialfile
+# owner: root
+# group: root
+user::rw-
+user:john:---
+group::r--
+group:mail:r-x
+mask::r-x
+other::r--
+
+In your /home/bob directory, you will find a directory called collection. Use the setfacl command recursively, so that ACL entries are modified on the directory itself but also all the files and subdirectories it may contain. The ACL permissions should allow the user called john to read, write and execute all entries within this directory.
+
+bob@caleston-lp10 ~ ✦ ✖ getfacl /home/bob/collection
+getfacl: Removing leading '/' from absolute path names
+# file: home/bob/collection
+# owner: root
+# group: root
+user::rwx
+group::r-x
+other::r-x
+
+
+bob@caleston-lp10 ~ ✦ ➜  setfacl --recursive -m user:john:rwx /home/bob/collection
+setfacl: /home/bob/collection: Operation not permitted
+setfacl: /home/bob/collection/file2: Operation not permitted
+setfacl: /home/bob/collection/file3: Operation not permitted
+setfacl: /home/bob/collection/file1: Operation not permitted
+
+bob@caleston-lp10 ~ ✦ ✖ sudo setfacl --recursive -m user:john:rwx /home/bob/collection
+
+bob@caleston-lp10 ~ ✦ ➜  getfacl /home/bob/collection
+getfacl: Removing leading '/' from absolute path names
+# file: home/bob/collection
+# owner: root
+# group: root
+user::rwx
+user:john:rwx
+group::r-x
+mask::rwx
+other::r-x
