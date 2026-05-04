@@ -1,0 +1,173 @@
+////////////////////////////////LFCS MOCL Examp ///////
+
+In the /opt/findme/ directory you will find 10,000 files. You need to filter out specific files
+
+Find all files that have the executable permission bit enabled for the user that owns them. Redirect the output of the find command to the /opt/foundthem.txt file.
+Find all files that have the SETUID permission enabled and delete them.
+Find any file that is larger than 1KB and copy it to the /opt/ directory
+
+
+
+1.Find all files that have the executable permission bit enabled for the user that owns them. Redirect the output of the find command to the /opt/foundthem.txt file.
+
+Pattern	Meaning
+-perm -MODE	Must include ALL bits
+-perm /MODE	Match ANY bit
+-perm MODE	Exact match
+-perm -u=x	User execute must be set
+-perm -g=w	Group write must be set
+-perm -4000	SUID
+-perm -2000	SGID
+-perm -1000	Sticky bit
+Find all files (for folder use d) in the path where user executable premissions is set to x:
+bob@caleston-lp10 ~ ✦ ➜  find /opt/findme -type f -perm -u=x
+/opt/findme/file3869
+/opt/findme/file4774
+/opt/findme/file5768
+/opt/findme/file6723
+/opt/findme/file7987
+/opt/findme/file8954
+
+The same juts cause in the LAB permissions were failing:
+sudo sh -c "sudo find /opt/findme -type f -perm -u=x > /opt/foundthem.txt"
+
+
+2.Find all files that have the SETUID permission enabled and delete them.
+
+
+
+SETUID is 4000
+
+
+Special bit	Numeric	Symbolic	Where it appears
+SUID	4000	s or S	User execute position (char 4)
+SGID	2000	s or S	Group execute position (char 7)
+Sticky	1000	t or T	Others execute position (char 10)
+
+
+
+bob@caleston-lp10 ~ ✦ ✖ find /opt/findme -type f -perm -4000 
+/opt/findme/file3869
+/opt/findme/file6723
+/opt/findme/file8954
+
+DELETE all of them (find /opt/findme -type f -perm -4000 -delete)
+On the lab it need to put in the sudo"":
+sudo sh -c "sudo find /opt/findme -type f -perm -4000 -delete"
+
+
+3.Find any file that is larger than 1KB and copy it to the /opt/ directory
+find <path> -type f -size <size>
+
+
+Meaning	Example
+Larger than	-size +10M
+Smaller than	-size -500k
+Exactly	-size 100c
+Bytes	c
+KB	k
+MB	M
+GB	G
+
+
+
+bob@caleston-lp10 ~ ✦ ➜  find /opt/findme/ -type f -size +1k
+/opt/findme/file4922
+
+sudo sh -c "sudo find /opt/findme -type f -size +1k -print0 | xargs -0 cp -t /opt/"
+
+
+
+/////////////////////////////////////////2//////////////////////////////////////////
+
+
+Perform the following two tasks:
+
+Create a bash script that recursively copies the /var/www/ directory into the /opt/www-backup/ directory
+
+Save your script at /opt/script.sh. Remember, the script file you create also has to be executable.
+
+Make sure that your script /opt/script.sh automatically runs every day at 4AM. More specifically, create a cron job that runs that script every day at 4AM. Put this in the system-wide cron table (not root's local cron table) and make sure the script executes under the root user.
+
+In the /opt directory create with sudo:
+
+#!/bin/bash
+/bin/mkdir -p /opt/www-backup/
+/bin/cp -a /var/www/ /opt/www-backup/
+
+Make it executable for Owner and Group and Others:
+bob@caleston-lp10 /opt🔒 ✦2 ✖ sudo chmod +x /opt/script.sh
+
+bob@caleston-lp10 /opt🔒 ✦2 ➜  ls -l script.sh 
+-rwxr-xr-x 1 root root 82 May  4 08:33 script.sh
+
+
+Now i see all cron tables here:
+
+bob@caleston-lp10 /opt🔒 ✦2 ➜  sudo ls /etc | grep cron
+cron.d
+cron.daily
+cron.hourly
+cron.monthly
+cron.weekly
+crontab
+
+If the task says “system‑wide cron table”
+
+current we are:
+bob@caleston-lp10 /opt🔒 ✦2 ✖ ls
+containerd  file4922  findme  foundthem.txt  script.sh
+
+current path is:
+bob@caleston-lp10 /opt🔒 ✦2 ➜  pwd
+/opt
+
+
+Breakdown:
+
+Add: 0 4 * * * root /opt/script.sh
+
+where:
+
+0 → minute
+
+4 → hour (4 AM)
+
+* * * → every day, every month, every weekday
+
+root → run as root
+
+/opt/script.sh → your script
+
+Just prints all cron options:
+
+bob@caleston-lp10 ~ ➜  sudo cat /etc/crontab
+# /etc/crontab: system-wide crontab
+# Unlike any other crontab you don't have to run the `crontab'
+# command to install the new version when you edit this file
+# and files in /etc/cron.d. These files also have username fields,
+# that none of the other crontabs do.
+
+SHELL=/bin/sh
+# You can also override PATH, but by default, newer versions inherit it from the environment
+#PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# Example of job definition:
+# .---------------- minute (0 - 59)
+# |  .------------- hour (0 - 23)
+# |  |  .---------- day of month (1 - 31)
+# |  |  |  .------- month (1 - 12) OR jan,feb,mar,apr ...
+# |  |  |  |  .---- day of week (0 - 6) (Sunday=0 or 7) OR sun,mon,tue,wed,thu,fri,sat
+# |  |  |  |  |
+# *  *  *  *  * user-name command to be executed
+17 *    * * *   root    cd / && run-parts --report /etc/cron.hourly
+25 6    * * *   root    test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily )
+47 6    * * 7   root    test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.weekly )
+52 6    1 * *   root    test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.monthly )
+#
+
+
+
+
+
+
