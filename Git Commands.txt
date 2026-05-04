@@ -1,0 +1,257 @@
+///////////////////////Git //////////
+
+Detect Operation system: 
+>cat /etc/os-release
+
+cat /etc/os-release
+NAME="Alpine Linux"
+ID=alpine
+VERSION_ID=3.22.2
+PRETTY_NAME="Alpine Linux v3.22"
+HOME_URL="https://alpinelinux.org/"
+BUG_REPORT_URL="https://gitlab.alpinelinux.org/alpine/aports/-/issues"
+
+OR hostanmectl (not working on Alpine)
+
+
+Install GIT on the system.
+
+Run the following commands to install Git:
+
+>sudo apt update  - fo Alpine for Ubuntu (sudo apt update)
+>sudo apk add git 
+
+
+check git version:
+
+
+git --version
+git version 2.49.1
+
+
+We will learn more about working with different git commands throughout this course. But let's see if you can figure some stuff out using the git help command.
+
+What's the git command used to Show various types of objects?
+
+>git show
+
+Start working git directory BEFORE create a folder and navigate to folder and run:
+
+>git init
+
+
+Identify the option used to create a bare repository using the init command.
+
+To view detailed help for any Git command, use the syntax:
+
+git help <command>
+
+Before that, install the Git manual pages:
+
+sudo apt-get install git-man
+
+Now, use the following command to check the options available with git init:
+
+git help init
+
+Identify the option used to create a bare repository.
+
+
+In Alpine Git help is not working cause it need a "man" be installed before:
+
+sudo apk add man-pages man-db less
+and sudo apk add git-doc
+
+Now >git help <command> will be working  like: git help init
+
+Working Area - can be Untracked and Modified where git can see the file:
+
+To add file to the Staging Area:
+>git add <filename>
+
+Commited files:
+>git commit -m "Added first file" 
+
+
+Demo: Init Git Repo
+cd ~/myproject
+git init
+Initialized empty Git repository in /home/dani/myproject/.git/
+git add .
+git commit -m "Initial commit"
+
+>git config user.name "dani liv"
+>git config user.email "dani@gmail.com"
+
+globally:
+git config --global user.name "Dani"
+git config --global user.email "your-email@example.com"
+
+default branch:
+
+git config --global init.defaultBranch main
+
+creaet .gitignore:
+
+touch .gitignore
+
+out there:
+*.log
+*.tmp
+node_modules/
+.env
+
+
+set prefer editor (i prefer vs code):
+git config --global core.editor "nano" or git config --global core.editor "vim"
+
+Enable colored output:
+git config --global color.ui auto
+
+If you plan to push to GitHub, add your remote - NEED TO CREATE A REPO in the GITHUB:
+
+git remote add origin https://github.com/yourname/repo.git
+
+git push -u origin main
+
+
+⭐ Quick checklist (your workflow)
+git init
+
+git add .
+
+git commit -m "Initial commit"
+
+Create repo on GitHub
+
+git remote add origin https://github.com/yourname/repo.git
+
+git push -u origin main
+
+
+>git restore <filename>  - when file was staged first and then modified , we want to back to the file stage when it was staged (so without new modification)
+
+
+
+>git restore --stage  - for exaple when we have 2 or more files in the staging area but we do not want to commit a both , only one we want to commit.So the command can help us to remove the file from staging area back to be in WOrking Area - Modified
+
+
+Action	Command	Effect
+Undo file changes	git restore file	Reverts file to last commit
+Unstage a file	git restore --staged file	Keeps changes, removes from staging
+Restore from commit	git restore --source <hash> file	Pulls file from older commit
+Undo all changes	git restore .	Resets entire working directory
+
+Remove /Delete the file:
+
+git rm — remove a tracked file from the repo
+git rm means:
+
+“Delete this file from my working directory AND from the Git repository.”
+
+It affects:
+
+your working directory
+
+the staging area
+
+the next commit
+
+git rm config.txt
+git commit -m "Remove config file"
+
+
+Result:
+
+config.txt is deleted from disk
+
+Git marks it as removed
+
+It disappears from the repo in the next commit
+
+
+Git log not shows by default commited files:
+
+sarah@dev01 story-blog on  master ➜  git log
+commit 762307ec8c6dba9478d389a56c1e1c0115652ec3 (HEAD -> master)
+Author: sarah <sarah@example.com>
+Date:   Mon May 4 12:54:29 2026 +0000
+
+    Added the lion and mouse story
+
+sarah@dev01 story-blog on  master ➜  git log --oneline
+762307e (HEAD -> master) Added the lion and mouse story
+
+To see commited files with gitl log:
+
+sarah@dev01 story-blog on  master ➜  git log --name-only
+commit 762307ec8c6dba9478d389a56c1e1c0115652ec3 (HEAD -> master)
+Author: sarah <sarah@example.com>
+Date:   Mon May 4 12:54:29 2026 +0000
+
+    Added the lion and mouse story
+
+lion-and-mouse.txt	
+	
+	
+To see the name of the User of last commit + file name :
+
+sarah@dev01 learning-app-ecommerce on  master [⇡] via 🐘 ➜  git log --name-only -1
+commit b462583f1aed7635e1285babd636617c4357f9a7 (HEAD -> master)
+Author: tej <tej@example.com>
+Date:   Mon May 4 12:52:37 2026 +0000
+
+    Update color from red to green
+
+css/style.css	
+
+lion-and-mouse.txt
+
+
+To find who made the changes LAST time to the .js files :
+
+sarah@dev01 learning-app-ecommerce on  master [⇡] via 🐘 ➜  git log --name-only -- *.js
+commit ca047b0bdc27723433a10367955f40d4f7f31c7a
+Author: max <max@example.com>
+Date:   Mon May 4 12:52:37 2026 +0000
+
+    Increase interval time to 500
+
+js/theme.js
+
+
+///////////////////////Branches ////////////
+
+Create new branch:
+>git branch dev-task-12345
+
+Swith out to the branch :
+>git checkout dev-task-12345
+
+create branch and swithc to it:
+>git branch -b dev-task-12345
+
+delete branch:
+>git branch -d dev-task-12345
+
+list all branch:
+>git branch 
+
+check from which branch is created from branch: git log --graph --decorate
+
+///////////////////////////Git Merge ///////////
+
+1)When work done on the feature branch do checkout to the branch which you wat get the merge
+for example i have worked on feature_1 branch and now want merge to master - so need first CHECKOUT TO THE MASTER
+
+>git checkout master
+>git merge feature_1   - now we merge feature_1 to the master branch 
+
+
+Two types of merge: fast-forward and no-fast-forward 
+
+fast-forward happens when master banch does not have any commit since we created our feature bracnh - so it will just like cpu our commits without changing them - NO NEW MERGE COMMIT WILL BE CREATED (no need)
+
+no-fast-forward - happens when master branch has commits which creaeted after the feature branch created (so files modified in the master branch) - so new MERGE COMMIT WILL BE CREATED
+
+
