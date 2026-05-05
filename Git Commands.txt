@@ -442,4 +442,433 @@ To http://gitea:3000/sarah/story-blog.git
    
 ///////////////////////////Fork ////////////
    
+   from UI
    
+   
+//////////////Rebasing /////////
+
+
+Smashing multiple commits to the one commit:
+Checkout first to the branch - for example story/hare-and-tortoise
+then run git rebase -i HEAD~3 if we want 
+   
+sarah@dev01 story-blog on  story/hare-and-tortoise ✦ ➜  git rebase -i HEAD~3
+[detached HEAD 6ac9de2] Add hare-and-tortoise story
+ Date: Tue May 5 16:40:02 2026 +0000
+ 4 files changed, 65 insertions(+)
+ create mode 100644 fox-and-grapes.txt
+ create mode 100644 hare-and-tortoise.txt
+ create mode 100644 story-index.txt
+ create mode 100644 wolf-and-goat.txt
+Successfully rebased and updated refs/heads/story/hare-and-tortoise.
+
+
+For cherry picking detect the commit/commits which made changes to the specifica file (which we need):
+
+commit b774e0a42025333f597e3aaacebcdac8a1e5a62e (origin/master)
+Author: tom <tom@example.com>
+Date:   Tue May 5 17:15:11 2026 +0000
+
+    Updated the story index file
+
+story-index.txt
+
+on the master file has:
+
+sarah@dev01 story-blog on  master ➜  cat story-index.txt 
+1. The Lion and the Mouse
+2. The Frogs and the Ox
+3. The Fox and the Grapes
+4. The Donkey and the Dog
+5. The Wolf and the Goat
+
+////////////////Resetting and Reverting /////////
+
+Revert - will do UNDO fot the commit but will keep it in the history
+
+>git revert <commitnumber>
+
+
+
+
+>git reset --soft HEAD~1  - reset but keep all the changes we made ,or --hard flag to lose all the chages we made
+
+Remove last commit - history will be as well cleaned:
+
+sarah@dev01 story-blog on  master ➜  git log --name-only
+commit 1caa99b108043ffe25d21684ac75cb5610ff7cae (HEAD -> master)
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 17:39:19 2026 +0000
+
+    Add author info to stories
+
+fox-and-grapes.txt
+frogs-and-ox.txt
+hare-and-tortoise.txt
+lion-and-mouse.txt
+wolf-and-goat.txt
+
+commit 3d162e05c1c86c005241de54eb8bc36ca53b7d1f
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 17:38:49 2026 +0000
+
+    Add stories
+
+fox-and-grapes.txt
+frogs-and-ox.txt
+hare-and-tortoise.txt
+lion-and-mouse.txt
+wolf-and-goat.txt
+
+sarah@dev01 story-blog on  master ➜  git reset --hard HEAD~1
+HEAD is now at 3d162e0 Add stories
+
+sarah@dev01 story-blog on  master ➜  git log --name-only
+commit 3d162e05c1c86c005241de54eb8bc36ca53b7d1f (HEAD -> master)
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 17:38:49 2026 +0000
+
+    Add stories
+
+fox-and-grapes.txt
+frogs-and-ox.txt
+hare-and-tortoise.txt
+lion-and-mouse.txt
+wolf-and-goat.txt
+
+REVERT but keep in the history:
+
+
+
+sarah@dev01 story-blog on  master ✖ git revert 861ac551a2d9e4df5c67366ab34326a8c898b275
+[master 90bd84a] Revert "Add author info to stories"
+ 2 files changed, 2 insertions(+), 6 deletions(-)
+
+sarah@dev01 story-blog on  master ➜  git log --name-only
+commit 90bd84a641a44a7ba021228121fab97b6860d807 (HEAD -> master)
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 17:46:52 2026 +0000
+
+    Revert "Add author info to stories"
+    
+    This reverts commit 861ac551a2d9e4df5c67366ab34326a8c898b275.
+
+fox-and-grapes.txt
+frogs-and-ox.txt
+
+commit 861ac551a2d9e4df5c67366ab34326a8c898b275
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 17:45:53 2026 +0000
+
+    Add author info to stories
+
+fox-and-grapes.txt
+frogs-and-ox.txt
+
+commit 3d162e05c1c86c005241de54eb8bc36ca53b7d1f
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 17:38:49 2026 +0000
+
+    Add stories
+
+fox-and-grapes.txt
+frogs-and-ox.txt
+hare-and-tortoise.txt
+lion-and-mouse.txt
+wolf-and-goat.txt
+
+
+Soft - revert last commit and file will be in staging so we can add information to it or modify again:
+
+
+sarah@dev01 story-blog on  master ✖ git log --name-only
+commit b22695b5416d14e602d7adb1353312e05479ba99 (HEAD -> master)
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 17:48:17 2026 +0000
+
+    Finish story
+
+hare-and-tortoise.txt
+
+commit 90bd84a641a44a7ba021228121fab97b6860d807
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 17:46:52 2026 +0000
+
+    Revert "Add author info to stories"
+    
+    This reverts commit 861ac551a2d9e4df5c67366ab34326a8c898b275.
+
+fox-and-grapes.txt
+frogs-and-ox.txt
+
+commit 861ac551a2d9e4df5c67366ab34326a8c898b275
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 17:45:53 2026 +0000
+
+    Add author info to stories
+
+fox-and-grapes.txt
+frogs-and-ox.txt
+
+commit 3d162e05c1c86c005241de54eb8bc36ca53b7d1f
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 17:38:49 2026 +0000
+
+    Add stories
+
+fox-and-grapes.txt
+frogs-and-ox.txt
+hare-and-tortoise.txt
+lion-and-mouse.txt
+wolf-and-goat.txt
+
+sarah@dev01 story-blog on  master ➜  ^C
+
+sarah@dev01 story-blog on  master ✖ git reset --soft HEAD~1
+
+sarah@dev01 story-blog on  master [+] ➜  git status
+On branch master
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        modified:   hare-and-tortoise.txt
+		
+		
+HARS reset 3 last commits example - when we do not want to see them even in the history:
+
+
+	sarah@dev01 story-blog on  master [!] ➜  git log --name-only
+commit 145f6666288e8992f3e518816f3ff9548b6f6321 (HEAD -> master)
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 17:50:58 2026 +0000
+
+    Improve story one final time
+
+hare-and-tortoise.txt
+
+commit b8623b815d21993e02bc22c3cc5b3b95a9ab5600
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 17:50:58 2026 +0000
+
+    Improve story again
+
+hare-and-tortoise.txt
+
+commit 53e3521e3245c6d653d1fda80bca45749590a29d
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 17:50:58 2026 +0000
+
+    Improve story
+
+hare-and-tortoise.txt
+
+commit fa2bb39c72865653d4aa06298628d05e477b7bb7
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 17:50:52 2026 +0000
+
+    Finish hare-and-tortoise story
+
+hare-and-tortoise.txt
+
+commit 90bd84a641a44a7ba021228121fab97b6860d807
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 17:46:52 2026 +0000
+
+    Revert "Add author info to stories"
+    
+    This reverts commit 861ac551a2d9e4df5c67366ab34326a8c898b275.
+
+fox-and-grapes.txt
+frogs-and-ox.txt
+
+commit 861ac551a2d9e4df5c67366ab34326a8c898b275
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 17:45:53 2026 +0000
+
+    Add author info to stories
+
+fox-and-grapes.txt
+frogs-and-ox.txt
+
+commit 3d162e05c1c86c005241de54eb8bc36ca53b7d1f
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 17:38:49 2026 +0000
+
+    Add stories
+
+fox-and-grapes.txt
+frogs-and-ox.txt
+hare-and-tortoise.txt
+lion-and-mouse.txt
+wolf-and-goat.txt
+
+sarah@dev01 story-blog on  master ➜  git reset --hard HEAD~3
+HEAD is now at fa2bb39 Finish hare-and-tortoise story
+
+sarah@dev01 story-blog on  master ➜  git log --name-only
+commit fa2bb39c72865653d4aa06298628d05e477b7bb7 (HEAD -> master)
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 17:50:52 2026 +0000
+
+    Finish hare-and-tortoise story
+
+hare-and-tortoise.txt
+
+commit 90bd84a641a44a7ba021228121fab97b6860d807
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 17:46:52 2026 +0000
+
+    Revert "Add author info to stories"
+    
+    This reverts commit 861ac551a2d9e4df5c67366ab34326a8c898b275.
+
+fox-and-grapes.txt
+frogs-and-ox.txt
+
+commit 861ac551a2d9e4df5c67366ab34326a8c898b275
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 17:45:53 2026 +0000
+
+    Add author info to stories
+
+fox-and-grapes.txt
+frogs-and-ox.txt
+
+commit 3d162e05c1c86c005241de54eb8bc36ca53b7d1f
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 17:38:49 2026 +0000
+
+    Add stories
+
+fox-and-grapes.txt
+frogs-and-ox.txt
+hare-and-tortoise.txt
+lion-and-mouse.txt
+wolf-and-goat.txt
+
+
+///////////////////Stashing ///////////
+
+>git stash  - when we want work on some another task and put undone work ,put the files from staging area to the STASH 
+>git stash pop - get files back from the STASH to the WORKING DIRECTORY	
+
+so when we run git stack it like to add file to the stack (mahsanit) in the stash (LIFO)
+to see all the files in the stash:
+>git stash list
+
+to see the content of the stash:
+>git stash show stash@{1}  - to see first in the stash
+
+to POP specific stash:
+>git stash pop stash@{1}  - to pop 1 stashed file
+
+
+Example git stash:
+sarah@dev01 story-blog on  story/frogs-and-ox [+] ➜  git status
+On branch story/frogs-and-ox
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        new file:   frogs-and-ox.txt
+
+
+sarah@dev01 story-blog on  story/frogs-and-ox [+] ➜  git stash
+Saved working directory and index state WIP on story/frogs-and-ox: bba1c1b Added the lion and mouse story
+
+sarah@dev01 story-blog on  story/frogs-and-ox [$] ➜  git status
+On branch story/frogs-and-ox
+nothing to commit, working tree clean
+
+POP from the stash when we want back to the work:
+
+sarah@dev01 story-blog on  story/frogs-and-ox [$] ✖ git branch
+  master
+* story/frogs-and-ox
+
+sarah@dev01 story-blog on  story/frogs-and-ox [$] ➜  git status
+On branch story/frogs-and-ox
+nothing to commit, working tree clean
+
+sarah@dev01 story-blog on  story/frogs-and-ox [$] ➜  git stash pop
+On branch story/frogs-and-ox
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        new file:   frogs-and-ox.txt
+
+Dropped refs/stash@{0} (fd34410916b2aedfbe38d14da040d1506f1393bf)
+
+sarah@dev01 story-blog on  story/frogs-and-ox [+] ➜  git status
+On branch story/frogs-and-ox
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        new file:   frogs-and-ox.txt
+		
+List all stashed files:
+
+sarah@dev01 story-blog on  story/frogs-and-ox [$] ➜  git branch
+  master
+* story/frogs-and-ox
+  story/multi-part-story
+
+sarah@dev01 story-blog on  story/frogs-and-ox [$] ➜  git checkout story/multi-part-story
+Switched to branch 'story/multi-part-story'
+
+sarah@dev01 story-blog on  story/multi-part-story [$] ➜  ls
+frogs-and-ox.txt    lion-and-mouse.txt
+
+sarah@dev01 story-blog on  story/multi-part-story [$] ➜  git stash list
+stash@{0}: WIP on story/multi-part-story: 2767d00 all pending changes
+stash@{1}: WIP on story/multi-part-story: 2767d00 all pending changes
+stash@{2}: WIP on story/multi-part-story: 2767d00 all pending changes		
+
+
+SHOW stash information about the file in stash:
+
+sarah@dev01 story-blog on  story/multi-part-story [$] ➜  git stash list
+stash@{0}: WIP on story/multi-part-story: 2767d00 all pending changes
+stash@{1}: WIP on story/multi-part-story: 2767d00 all pending changes
+stash@{2}: WIP on story/multi-part-story: 2767d00 all pending changes
+
+sarah@dev01 story-blog on  story/multi-part-story [$] ➜  ^C
+
+sarah@dev01 story-blog on  story/multi-part-story [$] ✖ git stash show stash@{0}
+ story3.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+sarah@dev01 story-blog on  story/multi-part-story [$] ➜  git stash show stash@{1}
+ story2.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+sarah@dev01 story-blog on  story/multi-part-story [$] ➜  git stash show stash@{2}
+ story1.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+sarah@dev01 story-blog on  story/multi-part-story [$] ➜  git stash show stash@{3}
+fatal: log for 'stash' only has 3 entries
+
+//////////////////Reflog ///////////
+When we did hard reset and clean the history and changes - we can find them in the reflog.
+
+output of the git reflog command, showing your recent HEAD movements and commits:
+
+Commit Hash	HEAD Reference	Action / Message
+a340aae	HEAD@{0}	reset: moving to HEAD~1
+8ad5d8c	HEAD@{1}	commit: Added third story
+aaba51e	HEAD@{2}	commit: Changes to second story
+fb9f13e	HEAD@{3}	commit: Added second story
+
+so our removed commit is: 8ad5d8c
+
+restore it:
+>git reset --hard 8ad5d8c
+
+and ref log will be updated with :
+
+Commit Hash	HEAD Reference	Action / Message
+78sfs8f HEAD@{0}	reset: moving to 8ad5d8c
+a340aae	HEAD@{0}	reset: moving to HEAD~1
+8ad5d8c	HEAD@{1}	commit: Added third story
+aaba51e	HEAD@{2}	commit: Changes to second story
+fb9f13e	HEAD@{3}	commit: Added second story
+
+
+
+>git log will show only the commits - not last commands and head pointer
