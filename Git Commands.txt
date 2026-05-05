@@ -254,4 +254,192 @@ fast-forward happens when master banch does not have any commit since we created
 
 no-fast-forward - happens when master branch has commits which creaeted after the feature branch created (so files modified in the master branch) - so new MERGE COMMIT WILL BE CREATED
 
+///////////////////Initialization Remote Repositories ///////////
 
+Add remote repository:
+>git remote add origin https://ffafaf/fafasf/asfasfa.git   - a name of remote (can have multiple remotes)
+
+List remote repositories:
+>git remote -v  
+
+Push to remote repository:
+
+>git push origin master   - origin is alias for remote repo 
+
+Fetsh the data from remote:
+
+Push and Push data:
+
+
+Created REPOSITORY at Gitea:
+
+https://3000-port-yzeuituaewpubzwl.labs.kodekloud.com/sarah/story-blog
+
+Creating a new repository on the command line
+touch README.md
+git init
+
+git add README.md
+git commit -m "first commit"
+git remote add origin https://3000-port-yzeuituaewpubzwl.labs.kodekloud.com/sarah/story-blog.git
+git push -u origin master
+
+Configured origin:
+git remote add origin http://gitea:3000/sarah/story-blog.git
+
+Push the master to remote (origin):
+git push origin master
+
+Push master to origin:
+
+sarah@dev01 story-blog on  master ➜  git push origin master
+Username for 'http://gitea:3000': sarah
+Password for 'http://sarah@gitea:3000': 
+Enumerating objects: 14, done.
+Counting objects: 100% (14/14), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (12/12), done.
+Writing objects: 100% (14/14), 2.06 KiB | 2.06 MiB/s, done.
+Total 14 (delta 4), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: . Processing 1 references
+remote: Processed 1 references in total
+To http://gitea:3000/sarah/story-blog.git
+ * [new branch]      master -> master
+ 
+ 
+ ///////////////////////////////Clone repo //////
+ 
+ >git clone [ssh link]
+ 
+ 
+ Example:
+ git clone http://gitea:3000/sarah/story-blog
+ 
+ 
+ ////////////////////////////Fetch ///////
+ 
+ >git fecth origin master  - to get to the master lates changes updates from the remote git repo(origin)
+ 
+ sarah@dev01 story-blog on  master ➜  git fetch origin master
+From http://gitea:3000/sarah/story-blog
+ * branch            master     -> FETCH_HEAD
+ 
+ and now need to merge the changes with the master locally
+ 
+ >git merge origin/master  master
+ 
+ sarah@dev01 story-blog on  master ✖ git merge origin/master master
+Already up to date.
+ 
+ Now origin/master and master both are the same
+ 
+ Instead two these commands we can do one command:
+ 
+ >git pull origin master  - git pull does two commands first FETCH the changes from remote and then MERGE them with master (in our case)
+ 
+ sarah@dev01 story-blog on  master ➜  git pull origin master
+remote: Enumerating objects: 4, done.
+remote: Counting objects: 100% (4/4), done.
+remote: Compressing objects: 100% (3/3), done.
+remote: Total 3 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)
+Unpacking objects: 100% (3/3), 724 bytes | 724.00 KiB/s, done.
+From http://gitea:3000/sarah/story-blog
+ * branch            master     -> FETCH_HEAD
+   53523f6..03ba4d9  master     -> origin/master
+Updating 53523f6..03ba4d9
+Fast-forward
+ fox-and-grapes.txt | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+ create mode 100644 fox-and-grapes.txt
+ 
+ To view all branches -local and remote: git branch -a
+ 
+ git branch -a
+* master
+  story/frogs-and-ox
+  remotes/origin/HEAD -> origin/master
+  remotes/origin/master
+  
+  /////////////////////Resolve Conflicts in Git ///////////
+  
+  
+  <<<<<<< HEAD
+your version
+=======
+their version
+>>>>>>> branch-name
+
+
+Leave some version and add it and commit:
+>git add file.txt  - file which we did changes
+>git merge 
+
+
+During a push we get and error which says we need pull before,so during a pull we got MERGE notification:
+Which says:CONFLICT (add/add): Merge conflict in story-index.txt
+Automatic merge failed; fix conflicts and then commit the result.
+
+Example:
+max@dev01 story-blog on  master [⇡] ✖ git pull origin master
+remote: Enumerating objects: 4, done.
+remote: Counting objects: 100% (4/4), done.
+remote: Compressing objects: 100% (3/3), done.
+remote: Total 3 (delta 1), reused 0 (delta 0), pack-reused 0 (from 0)
+Unpacking objects: 100% (3/3), 305 bytes | 305.00 KiB/s, done.
+From http://gitea:3000/sarah/story-blog
+ * branch            master     -> FETCH_HEAD
+   d5be784..7f1fc7e  master     -> origin/master
+Auto-merging story-index.txt
+CONFLICT (add/add): Merge conflict in story-index.txt
+Automatic merge failed; fix conflicts and then commit the result.
+
+Need to look who added the file:
+
+max@dev01 story-blog on  master (MERGING) [=⇕] ✖ git log --name-only origin/master 
+commit 7f1fc7efa5c5a08f23e2b4bcfecd984b651b2d99 (origin/master, origin/HEAD)
+Author: sarah <sarah@example.com>
+Date:   Tue May 5 12:21:31 2026 +0000
+
+    Added the index file
+
+story-index.txt
+
+
+Let's open a file and see that MERGE conflict and resolve it:
+
+max@dev01 story-blog on  master (MERGING) [=⇕] ✖ cat story-index.txt 
+<<<<<<< HEAD
+1. The Lion and the Mooose
+2. The Frogs and the Ox
+3. The Fox and the Grapes
+4. The Donkey and the Dog
+=======
+1. The Lion and the Mouse
+2. The Frogs and the Ox
+3. The Fox and the Grapes
+>>>>>>> 7f1fc7efa5c5a08f23e2b4bcfecd984b651b2d99
+
+>git add .
+>git commint -m "resolved megre conflict"
+I did type in commit and needed to fix it:
+max@dev01 story-blog on  master [⇡] ✦ ✖ git commit --amend -m "Resolved merge conflicts and merged story index"
+[master 890ffbb] Resolved merge conflicts and merged story index
+ Date: Tue May 5 12:42:48 2026 +0000
+ 
+ Now we can push again:
+ 
+ max@dev01 story-blog on  master [⇡] ✦ ➜  git push origin master
+Enumerating objects: 9, done.
+Counting objects: 100% (9/9), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (6/6), done.
+Writing objects: 100% (6/6), 631 bytes | 631.00 KiB/s, done.
+Total 6 (delta 3), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: . Processing 1 references
+remote: Processed 1 references in total
+To http://gitea:3000/sarah/story-blog.git
+   7f1fc7e..890ffbb  master -> master
+   
+///////////////////////////Fork ////////////
+   
+   
